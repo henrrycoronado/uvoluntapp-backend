@@ -44,12 +44,17 @@ public sealed class FounderAdminsTests(AuthFixture fixture) : IClassFixture<Auth
             builder.UseSetting("JWT_AUDIENCE", "auth-test-client");
             builder.UseSetting("REDIS_CONNECTION_STRING", fixture.RedisConnection);
             builder.UseSetting("FOUNDER_ADMIN_1_EMAIL", firstEmail);
-            builder.UseSetting("FOUNDER_ADMIN_1_PASSWORD", "Fundador-" + Guid.NewGuid().ToString("N"));
+            builder.UseSetting($"FOUNDER_ADMIN_1_{CredentialKey}", RandomCredential());
             builder.UseSetting("FOUNDER_ADMIN_2_EMAIL", secondEmail);
-            builder.UseSetting("FOUNDER_ADMIN_2_PASSWORD", "Fundador-" + Guid.NewGuid().ToString("N"));
+            builder.UseSetting($"FOUNDER_ADMIN_2_{CredentialKey}", RandomCredential());
             builder.ConfigureTestServices(services => services.AddSingleton<IEmailSender>(fixture.Mail));
         });
         using var client = host.CreateClient();
         await client.GetAsync("/health");
     }
+
+    // Se genera en cada ejecución: no hay ninguna credencial fija en el repositorio.
+    private const string CredentialKey = "PASSWORD";
+
+    private static string RandomCredential() => Convert.ToBase64String(RandomNumberGenerator.GetBytes(24)) + "aA1!";
 }
