@@ -132,6 +132,7 @@ public sealed class Registration(
         {
             user.InstitutionalEmail = user.Email;
             user.InstitutionalEmailVerifiedAt = clock.GetUtcNow().UtcDateTime;
+            user.VerifiedAt = user.InstitutionalEmailVerifiedAt;
             var issued = tokens.Issue(db.AuthSessions.Add(new AuthSession { UserId = user.Id }).Entity);
             pair = new TokenPair { AccessToken = issued.AccessToken, RefreshToken = issued.RefreshToken, ExpiresAt = issued.ExpiresAt };
         }

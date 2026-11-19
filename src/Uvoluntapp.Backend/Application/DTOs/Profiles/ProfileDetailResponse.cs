@@ -12,4 +12,5 @@ public sealed record ProfileDetailResponse(
     DateTime? InstitutionalEmailVerifiedAt,
     string AccountStatus,
     IReadOnlyList<RoleAssignmentResponse> Roles,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    DateTime? VerifiedAt = null);
