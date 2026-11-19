@@ -67,10 +67,10 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                     b.Property<DateTime>("StartsAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<byte[]>("xmin")
+                    b.Property<uint>("xmin")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea")
+                        .HasColumnType("xid")
                         .HasColumnName("xmin");
 
                     b.HasKey("Id");
@@ -114,10 +114,10 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
-                    b.Property<byte[]>("xmin")
+                    b.Property<uint>("xmin")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea")
+                        .HasColumnType("xid")
                         .HasColumnName("xmin");
 
                     b.HasKey("Id");
@@ -179,10 +179,10 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<byte[]>("xmin")
+                    b.Property<uint>("xmin")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea")
+                        .HasColumnType("xid")
                         .HasColumnName("xmin");
 
                     b.HasKey("Id");
@@ -226,10 +226,10 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<byte[]>("xmin")
+                    b.Property<uint>("xmin")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea")
+                        .HasColumnType("xid")
                         .HasColumnName("xmin");
 
                     b.HasKey("Id");
@@ -260,10 +260,10 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                     b.Property<Guid>("RequestId")
                         .HasColumnType("uuid");
 
-                    b.Property<byte[]>("xmin")
+                    b.Property<uint>("xmin")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea")
+                        .HasColumnType("xid")
                         .HasColumnName("xmin");
 
                     b.HasKey("Id");
@@ -292,10 +292,10 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<byte[]>("xmin")
+                    b.Property<uint>("xmin")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea")
+                        .HasColumnType("xid")
                         .HasColumnName("xmin");
 
                     b.HasKey("Id");
@@ -335,10 +335,10 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<byte[]>("xmin")
+                    b.Property<uint>("xmin")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea")
+                        .HasColumnType("xid")
                         .HasColumnName("xmin");
 
                     b.HasKey("Id");
@@ -373,10 +373,10 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
-                    b.Property<byte[]>("xmin")
+                    b.Property<uint>("xmin")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea")
+                        .HasColumnType("xid")
                         .HasColumnName("xmin");
 
                     b.HasKey("Id");
@@ -402,10 +402,10 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<byte[]>("xmin")
+                    b.Property<uint>("xmin")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea")
+                        .HasColumnType("xid")
                         .HasColumnName("xmin");
 
                     b.HasKey("Id");
@@ -444,10 +444,10 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
-                    b.Property<byte[]>("xmin")
+                    b.Property<uint>("xmin")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea")
+                        .HasColumnType("xid")
                         .HasColumnName("xmin");
 
                     b.HasKey("Id");
@@ -481,10 +481,10 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<byte[]>("xmin")
+                    b.Property<uint>("xmin")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea")
+                        .HasColumnType("xid")
                         .HasColumnName("xmin");
 
                     b.HasKey("Id");
@@ -512,10 +512,10 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                     b.Property<Guid>("ProgramId")
                         .HasColumnType("uuid");
 
-                    b.Property<byte[]>("xmin")
+                    b.Property<uint>("xmin")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea")
+                        .HasColumnType("xid")
                         .HasColumnName("xmin");
 
                     b.HasKey("Id");
@@ -560,10 +560,10 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                     b.Property<DateTime?>("ValidUntil")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<byte[]>("xmin")
+                    b.Property<uint>("xmin")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea")
+                        .HasColumnType("xid")
                         .HasColumnName("xmin");
 
                     b.HasKey("Id");
