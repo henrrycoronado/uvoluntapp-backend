@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Uvoluntapp.Backend.Application.DTOs.Accounts;
 using Uvoluntapp.Backend.Application.Exceptions.Accounts;
 using Uvoluntapp.Backend.Application.Interfaces.Accounts;
+using Uvoluntapp.Backend.Application.Interfaces.Common;
 using Uvoluntapp.Backend.Application.Services.Accounts;
 using Uvoluntapp.Backend.Domain.Entities.Accounts;
 using Uvoluntapp.Backend.Domain.Utils.Enums;
@@ -18,6 +19,7 @@ public sealed class Registration(
     AccountRateLimiter limits,
     RegistrationCodes codes,
     IEmailSender mail,
+    IWebLinks links,
     SessionTokens tokens,
     TimeProvider clock,
     ILogger<Registration> logger) : IRegistration
@@ -37,7 +39,19 @@ public sealed class Registration(
         await using var tx = await LockAsync(normalized, cancellationToken);
         var user = await FindUserAsync(normalized, cancellationToken);
         string? stamp = null;
-        if (user is null || (user.Status == AccountStatus.PENDING_VERIFICATION && !user.EmailConfirmed && user.DeletedAt is null))
+
+        // Una cuenta creada con Google no tiene contraseña: recibe el código para crearla, con la misma respuesta pública.
+        if (user is { PasswordHash: null, EmailConfirmed: true, DeletedAt: null, Status: AccountStatus.ACTIVE or AccountStatus.PENDING_APPROVAL })
+        {
+            var setupCode = await codes.IssueAsync(normalized, user.SecurityStamp);
+            await tx.CommitAsync(cancellationToken);
+            await DeliverPasswordSetupAsync(user.Email!, setupCode!, cancellationToken);
+            return;
+        }
+
+        // Una cuenta pre-registrada (importación histórica) se reclama: conserva su perfil e historial.
+        var claim = user is { Status: AccountStatus.PRE_REGISTERED, DeletedAt: null };
+        if (user is null || claim || (user.Status == AccountStatus.PENDING_VERIFICATION && !user.EmailConfirmed && user.DeletedAt is null))
         {
             if (user is null)
             {
@@ -53,11 +67,21 @@ public sealed class Registration(
                 // Bind the new code to the credentials of this registration; old codes stop working.
                 user.PasswordHash = users.PasswordHasher.HashPassword(user, request.Password);
                 user.SecurityStamp = Guid.NewGuid().ToString();
+                user.Status = AccountStatus.PENDING_VERIFICATION;
             }
 
             var profile = await ProfileAsync(user.Id, cancellationToken);
-            profile.FirstName = request.FirstName;
-            profile.LastName = request.LastName;
+            if (!claim || string.IsNullOrWhiteSpace(profile.FirstName))
+            {
+                profile.FirstName = request.FirstName;
+                profile.LastName = request.LastName;
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.Phone) && (!claim || string.IsNullOrWhiteSpace(profile.Phone)))
+            {
+                profile.Phone = request.Phone.Trim();
+            }
+
             await db.SaveChangesAsync(cancellationToken);
             stamp = user.SecurityStamp;
         }
@@ -160,6 +184,22 @@ public sealed class Registration(
     private async Task<bool> NeedsApprovalDataAsync(AppUser user, CancellationToken cancellationToken) =>
         user.EmailConfirmed && user.Status == AccountStatus.PENDING_APPROVAL
         && !await db.AccountApprovalRequests.AnyAsync(r => r.UserId == user.Id, cancellationToken);
+
+    private async Task DeliverPasswordSetupAsync(string email, string code, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await mail.SendAsync(
+                email,
+                "Crea tu contraseña en Uvoluntapp",
+                $"Tu cuenta ya existe y entraste antes con Google. Para crear tu contraseña usa el código {code} (vence en 10 minutos) en {links.CreatePassword(email)}",
+                cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+        {
+            logger.LogError("El proveedor de correo no pudo entregar el código de contraseña ({ErrorType}).", ex.GetType().Name);
+        }
+    }
 
     private async Task DeliverAsync(string email, string code, CancellationToken cancellationToken)
     {

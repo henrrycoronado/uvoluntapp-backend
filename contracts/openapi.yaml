@@ -63,6 +63,9 @@ paths:
         Acepta correo institucional (`@ucb.edu.bo`) o externo.
         Envía OTP de 6 dígitos al correo (válido 10 min, máx 5 intentos).
         Respuesta no reveladora sobre existencia del correo.
+        Una cuenta PRE_REGISTERED (importación histórica) se reclama conservando su perfil.
+        Si el correo es de una cuenta creada con Google sin contraseña, el correo lleva el
+        código para /auth/set-password en lugar del OTP de registro.
         SCRUM-55.
       operationId: register
       security: []
@@ -307,7 +310,7 @@ paths:
       tags: [Auth]
       summary: Solicitar enlace de recuperación de contraseña
       description: |
-        Envía enlace de un solo uso válido 30 min.
+        Envía un enlace a la web (`WEB_BASE_URL/restablecer?token=...`) de un solo uso, válido 30 min.
         Respuesta no reveladora. Límites por cuenta e IP.
         SCRUM-105.
       operationId: forgotPassword
@@ -333,7 +336,7 @@ paths:
       tags: [Auth]
       summary: Restablecer contraseña con token de recuperación
       description: |
-        Token de un solo uso, válido 30 min.
+        Token de un solo uso, válido 30 min. Revoca todas las sesiones activas y queda auditado.
         SCRUM-105.
       operationId: resetPassword
       security: []
@@ -2123,6 +2126,11 @@ components:
           type: string
         lastName:
           type: string
+        phone:
+          type: string
+          maxLength: 30
+          nullable: true
+          description: Teléfono de contacto; se guarda en el perfil
       required:
         - email
         - password

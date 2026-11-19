@@ -312,6 +312,69 @@ public sealed class AuthFlowTests(AuthFixture fixture) : IClassFixture<AuthFixtu
         Assert.True(await db.AuditEvents.AnyAsync(e => e.Action == "PASSWORD_RESET" && e.ResourceId == user.Id));
     }
 
+    [Fact]
+    public async Task RegistrationStoresThePhoneInTheProfile()
+    {
+        using var client = fixture.Client();
+        var request = NewRegistration("ucb.edu.bo") with { Phone = "+591 70000000" };
+        await RegisterAsync(client, request);
+
+        await using var db = fixture.Context();
+        var user = await db.Users.SingleAsync(u => u.Email == request.Email);
+        Assert.Equal("+591 70000000", (await db.Profiles.SingleAsync(p => p.UserId == user.Id)).Phone);
+    }
+
+    [Fact]
+    public async Task PreRegisteredInstitutionalAccountIsClaimedKeepingItsProfile()
+    {
+        using var client = fixture.Client();
+        var email = $"{Guid.NewGuid():N}@ucb.edu.bo";
+        var id = Guid.NewGuid();
+        await using (var db = fixture.Context())
+        {
+            db.Users.Add(new Uvoluntapp.Backend.Infrastructure.Identity.AppUser
+            {
+                Id = id,
+                UserName = email,
+                NormalizedUserName = email.ToUpperInvariant(),
+                Email = email,
+                NormalizedEmail = email.ToUpperInvariant(),
+                Status = AccountStatus.PRE_REGISTERED,
+                SecurityStamp = Guid.NewGuid().ToString(),
+            });
+            db.Profiles.Add(new Uvoluntapp.Backend.Domain.Entities.Accounts.Profile { UserId = id, FirstName = "Histórico", LastName = "Importado" });
+            await db.SaveChangesAsync();
+        }
+
+        var request = NewRegistration("ucb.edu.bo") with { Email = email };
+        await RegisterAsync(client, request);
+        var verified = await (await VerifyAsync(client, email)).Content.ReadFromJsonAsync<VerifyOtpResponse>();
+
+        Assert.Equal("ACTIVE", verified!.AccountStatus);
+        await using var check = fixture.Context();
+        var user = await check.Users.SingleAsync(u => u.NormalizedEmail == email.ToUpperInvariant());
+        Assert.Equal(id, user.Id);
+        Assert.Equal("Histórico", (await check.Profiles.SingleAsync(p => p.UserId == id)).FirstName);
+        Assert.True((await client.PostAsJsonAsync("login", new { email, request.Password })).IsSuccessStatusCode);
+    }
+
+    [Fact]
+    public async Task RegisteringTheEmailOfAGoogleAccountSendsTheCodeToCreateItsPassword()
+    {
+        using var client = fixture.Client();
+        var email = await GoogleOnlyUserAsync(AccountStatus.ACTIVE);
+        var unknown = await RegisterAsync(client, NewRegistration("example.org"));
+        var request = NewRegistration("example.org") with { Email = email };
+
+        Assert.Equal(unknown, await RegisterAsync(client, request));
+        Assert.Contains("/crear-contrasena", fixture.Mail.Message(email));
+        var set = await client.PostAsJsonAsync("set-password", new { email, code = fixture.Mail.Code(email), password = request.Password });
+        set.EnsureSuccessStatusCode();
+        await using var db = fixture.Context();
+        var user = await db.Users.SingleAsync(u => u.Email == email);
+        Assert.True(await db.AuditEvents.AnyAsync(e => e.Action == "PASSWORD_CREATED" && e.ResourceId == user.Id));
+    }
+
     private async Task<string> GoogleOnlyUserAsync(AccountStatus status)
     {
         var email = $"{Guid.NewGuid():N}@example.org";
