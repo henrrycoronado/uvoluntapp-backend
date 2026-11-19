@@ -1,15 +1,18 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Uvoluntapp.Backend.Domain.Entities.Accounts;
+using Uvoluntapp.Backend.Domain.Entities.Audit;
 using Uvoluntapp.Backend.Domain.Entities.Programs;
+using Uvoluntapp.Backend.Domain.Utils.Constants;
 using Uvoluntapp.Backend.Domain.Utils.Enums;
 using Uvoluntapp.Backend.Infrastructure.Identity;
 
 namespace Uvoluntapp.Backend.Infrastructure.Persistence.Seeders;
 
 /// <summary>
-/// Aplica las migraciones al arrancar. En Development crea dos administradores de prueba
-/// (DEV_ADMIN_1_* y DEV_ADMIN_2_*). Nunca se ejecuta fuera de Development.
+/// Aplica las migraciones al arrancar y crea los dos administradores iniciales (SCRUM-106) en cualquier entorno,
+/// con FOUNDER_ADMIN_1_* y FOUNDER_ADMIN_2_* (o DEV_ADMIN_* en local). Es idempotente: si ya existen, no crea otros.
+/// Los programas y usuarios de prueba solo se crean en Development.
 /// </summary>
 public sealed class DatabaseInitializer(
     IServiceProvider services,
@@ -29,21 +32,11 @@ public sealed class DatabaseInitializer(
         await db.Database.MigrateAsync(cancellationToken);
         logger.LogInformation("Migraciones aplicadas.");
 
+        await EnsureFounderAdminsAsync(scope.ServiceProvider, cancellationToken);
+
         if (!environment.IsDevelopment())
         {
             return;
-        }
-
-        for (var index = 1; index <= 2; index++)
-        {
-            var email = configuration[$"DEV_ADMIN_{index}_EMAIL"];
-            var password = configuration[$"DEV_ADMIN_{index}_PASSWORD"];
-            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
-            {
-                continue;
-            }
-
-            await EnsureTestAdminAsync(scope.ServiceProvider, email, password, $"Admin{index}", cancellationToken);
         }
 
         await EnsureDemoProgramsAsync(db, cancellationToken);
@@ -80,7 +73,7 @@ public sealed class DatabaseInitializer(
         await db.SaveChangesAsync(cancellationToken);
     }
 
-    private static async Task EnsureTestAdminAsync(
+    private static async Task EnsureAdminAsync(
         IServiceProvider provider,
         string email,
         string password,
@@ -107,10 +100,15 @@ public sealed class DatabaseInitializer(
             if (!created.Succeeded)
             {
                 throw new InvalidOperationException(
-                    "No se pudo crear el administrador de prueba: " + string.Join(' ', created.Errors.Select(e => e.Description)));
+                    "No se pudo crear el administrador inicial: " + string.Join(' ', created.Errors.Select(e => e.Description)));
             }
 
-            db.Profiles.Add(new Profile { UserId = user.Id, FirstName = firstName, LastName = "Prueba" });
+            db.Profiles.Add(new Profile { UserId = user.Id, FirstName = firstName, LastName = "Pastoral" });
+            db.AuditEvents.Add(AuditEvent.CreateSystem(
+                AuditActions.FounderAdminProvisioned,
+                AuditResourceTypes.User,
+                user.Id,
+                new Dictionary<string, object?> { ["email"] = user.Email }));
         }
 
         var hasAdmin = await db.RoleAssignments.AnyAsync(
@@ -208,5 +206,41 @@ public sealed class DatabaseInitializer(
 
         db.Profiles.Add(new Profile { UserId = user.Id, FirstName = firstName, LastName = "Prueba" });
         await db.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Exactamente dos administradores iniciales. Sin los dos configurados no crea ninguno; con los dos ya creados no hace nada.
+    /// </summary>
+    private async Task EnsureFounderAdminsAsync(IServiceProvider provider, CancellationToken cancellationToken)
+    {
+        var founders = Enumerable.Range(1, 2)
+            .Select(index => (
+                Index: index,
+                Email: configuration[$"FOUNDER_ADMIN_{index}_EMAIL"] ?? configuration[$"DEV_ADMIN_{index}_EMAIL"],
+                Password: configuration[$"FOUNDER_ADMIN_{index}_PASSWORD"] ?? configuration[$"DEV_ADMIN_{index}_PASSWORD"]))
+            .ToList();
+        if (founders.Any(f => string.IsNullOrWhiteSpace(f.Email) || string.IsNullOrWhiteSpace(f.Password)))
+        {
+            logger.LogWarning("Administradores iniciales sin configurar: define FOUNDER_ADMIN_1_* y FOUNDER_ADMIN_2_*.");
+            return;
+        }
+
+        if (string.Equals(founders[0].Email!.Trim(), founders[1].Email!.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Los dos administradores iniciales deben tener correos distintos.");
+        }
+
+        // Una vez creados los dos, cambiar la configuración no crea más administradores.
+        var db = provider.GetRequiredService<AppDbContext>();
+        var provisioned = await db.AuditEvents.CountAsync(e => e.Action == AuditActions.FounderAdminProvisioned, cancellationToken);
+        if (provisioned >= 2)
+        {
+            return;
+        }
+
+        foreach (var founder in founders)
+        {
+            await EnsureAdminAsync(provider, founder.Email!, founder.Password!, $"Administrador {founder.Index}", cancellationToken);
+        }
     }
 }
