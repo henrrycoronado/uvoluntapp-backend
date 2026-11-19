@@ -9,4 +9,12 @@ public sealed class AuthSession : Entity
     public DateTime ExpiresAt { get; set; }
 
     public DateTime? RevokedAt { get; set; }
+
+    public bool IsActive(DateTime utcNow) => RevokedAt is null && ExpiresAt > utcNow;
+
+    // Revocar no borra la sesión: conserva su historial y solo fija la fecha.
+    public void Revoke(DateTime utcNow)
+    {
+        RevokedAt ??= utcNow;
+    }
 }
