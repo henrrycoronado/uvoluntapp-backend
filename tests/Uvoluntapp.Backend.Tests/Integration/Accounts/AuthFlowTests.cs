@@ -15,6 +15,7 @@ using Uvoluntapp.Backend.Application.DTOs.Accounts;
 using Uvoluntapp.Backend.Application.Exceptions.Accounts;
 using Uvoluntapp.Backend.Domain.Utils.Enums;
 using Uvoluntapp.Backend.Infrastructure.Auth;
+using Uvoluntapp.Backend.Tests;
 using Xunit;
 
 namespace Uvoluntapp.Backend.Tests.Integration.Accounts;
@@ -299,7 +300,7 @@ public sealed class AuthFlowTests(AuthFixture fixture) : IClassFixture<AuthFixtu
         Assert.True(link.Success);
         var token = Uri.UnescapeDataString(link.Groups[1].Value);
 
-        await AssertProblemAsync(await client.PostAsJsonAsync("reset-password", new { token, newPassword = "corta" }), HttpStatusCode.BadRequest);
+        await AssertProblemAsync(await client.PostAsJsonAsync("reset-password", new { token, newPassword = TestCredentials.TooShort() }), HttpStatusCode.BadRequest);
         var password = Guid.NewGuid().ToString("N");
         (await client.PostAsJsonAsync("reset-password", new { token, newPassword = password })).EnsureSuccessStatusCode();
         await AssertProblemAsync(await client.PostAsJsonAsync("reset-password", new { token, newPassword = password }), HttpStatusCode.UnprocessableEntity);

@@ -1,6 +1,8 @@
 # Pruebas de extremo a extremo de los permisos de líderes (módulo 1).
 # Requiere: API en http://localhost:5207, Mailpit en :8025, DEV_ADMIN_* en el entorno y al menos dos programas.
-import json, os, re, sys, uuid, urllib.request, urllib.error
+import json, os, re, secrets, sys, uuid, urllib.request, urllib.error
+# Clave de las cuentas desechables de esta corrida, generada al azar.
+LEADER_KEY = secrets.token_urlsafe(12) + "A1#"
 BASE = "http://localhost:5207"; MAIL = "http://localhost:8025"
 results = []
 def call(method, path, body=None, token=None):
@@ -25,9 +27,9 @@ def code_for(email):
             if f: return f[0]
 def new_active_user(prefix):
     email = f"{prefix}.{uuid.uuid4().hex[:6]}@ucb.edu.bo"
-    call("POST", "/api/v1/auth/register", {"email": email, "firstName": prefix.title(), "lastName": "Prueba", "password": "Lider#2026xyz"})
+    call("POST", "/api/v1/auth/register", {"email": email, "firstName": prefix.title(), "lastName": "Prueba", "password": LEADER_KEY})
     call("POST", "/api/v1/auth/verify-otp", {"email": email, "code": code_for(email)})
-    _, t = call("POST", "/api/v1/auth/login", {"email": email, "password": "Lider#2026xyz"})
+    _, t = call("POST", "/api/v1/auth/login", {"email": email, "password": LEADER_KEY})
     _, p = call("GET", "/api/v1/profile", token=t["accessToken"])
     return p["id"], t["accessToken"]
 

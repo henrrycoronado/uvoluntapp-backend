@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Uvoluntapp.Backend.Application.DTOs.Accounts;
 using Uvoluntapp.Backend.Application.Validators.Accounts;
+using Uvoluntapp.Backend.Tests;
 using Xunit;
 
 namespace Uvoluntapp.Backend.Tests.Unit.Accounts;
@@ -12,7 +13,7 @@ public class SessionRequestValidatorTests
     [Fact]
     public void AcceptsValidLogin()
     {
-        var request = new LoginRequest { Email = "ana.perez@ucb.edu.bo", Password = "ClaveSegura1" };
+        var request = new LoginRequest { Email = "ana.perez@ucb.edu.bo", Password = TestCredentials.Valid };
 
         Assert.Empty(LoginRequestValidator.Validate(request));
     }
@@ -20,7 +21,7 @@ public class SessionRequestValidatorTests
     [Fact]
     public void RejectsLoginWithInvalidEmail()
     {
-        var request = new LoginRequest { Email = "sin-arroba", Password = "ClaveSegura1" };
+        var request = new LoginRequest { Email = "sin-arroba", Password = TestCredentials.Valid };
 
         AssertHasError(LoginRequestValidator.Validate(request), nameof(LoginRequest.Email));
     }

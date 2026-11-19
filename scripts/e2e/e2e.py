@@ -44,8 +44,9 @@ def latest_code(email):
 def login(email, password):
     return call("POST", "/api/v1/auth/login", {"email": email, "password": password})
 
-A1 = {"email": "admin.prueba1@uvoluntapp.test", "password": "AdminPrueba1#2026"}
-A2 = {"email": "admin.prueba2@uvoluntapp.test", "password": "AdminPrueba2#2026"}
+# Credenciales de los administradores de prueba: siempre desde el entorno, nunca en el código.
+A1 = {"email": os.environ["DEV_ADMIN_1_EMAIL"], "password": os.environ["DEV_ADMIN_1_PASSWORD"]}
+A2 = {"email": os.environ["DEV_ADMIN_2_EMAIL"], "password": os.environ["DEV_ADMIN_2_PASSWORD"]}
 sfx = uuid.uuid4().hex[:6]
 VOL = f"voluntario.{sfx}@ucb.edu.bo"
 VOL2 = f"voluntario2.{sfx}@ucb.edu.bo"

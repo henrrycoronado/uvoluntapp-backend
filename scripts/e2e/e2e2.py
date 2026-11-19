@@ -1,6 +1,6 @@
 # Pruebas de extremo a extremo del módulo 1 contra la API local (Development).
 # Requiere: API en http://localhost:5207, Mailpit en :8025 y DEV_ADMIN_* en el entorno.
-import json, re, sys, time, uuid, urllib.request, urllib.error, http.cookiejar, os
+import json, re, secrets, sys, time, uuid, urllib.request, urllib.error, http.cookiejar, os
 BASE = "http://localhost:5207"; MAIL = "http://localhost:8025"
 results = []
 def call(method, path, body=None, token=None, headers=None):
@@ -63,7 +63,7 @@ CHG = f"cambio.{sfx}@ucb.edu.bo"; NEWMAIL = f"nuevo.{sfx}@ucb.edu.bo"
 call("POST", "/api/v1/auth/register", {"email": CHG, "firstName": "Pedro", "lastName": "Soliz", "password": OLD})
 call("POST", "/api/v1/auth/verify-otp", {"email": CHG, "code": code_for(CHG)})
 _, tc, _ = login(CHG, OLD); TC = tc["accessToken"]
-s, _, _ = call("POST", "/api/v1/profile/change-email", {"newEmail": NEWMAIL, "password": "clave-incorrecta"}, token=TC); check("cambio de correo con contraseña incorrecta", s, 401)
+s, _, _ = call("POST", "/api/v1/profile/change-email", {"newEmail": NEWMAIL, "password": secrets.token_urlsafe(12)}, token=TC); check("cambio de correo con contraseña incorrecta", s, 401)
 s, _, _ = call("POST", "/api/v1/profile/change-email", {"newEmail": NEWMAIL, "password": OLD}, token=TC); check("solicitar cambio de correo", s, 200)
 s, _, _ = call("POST", "/api/v1/profile/verify-email-change", {"code": "000000"}, token=TC); check("código de cambio de correo incorrecto", s, 422)
 s, _, _ = call("POST", "/api/v1/profile/verify-email-change", {"code": code_for(NEWMAIL)}, token=TC); check("confirmar cambio de correo", s, 200)
