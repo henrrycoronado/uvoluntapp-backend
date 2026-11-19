@@ -12,7 +12,7 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "AcademicPeriods",
+                name: "academic_periods",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -25,11 +25,11 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AcademicPeriods", x => x.Id);
+                    table.PrimaryKey("PK_academic_periods", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "AccountApprovalRequests",
+                name: "account_approval_requests",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -45,11 +45,11 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AccountApprovalRequests", x => x.Id);
+                    table.PrimaryKey("PK_account_approval_requests", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "Activities",
+                name: "activities",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -71,11 +71,11 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Activities", x => x.Id);
+                    table.PrimaryKey("PK_activities", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "ActivityReschedules",
+                name: "activity_reschedules",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -92,11 +92,11 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ActivityReschedules", x => x.Id);
+                    table.PrimaryKey("PK_activity_reschedules", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "AdminGrantApprovals",
+                name: "admin_grant_approvals",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -109,11 +109,11 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AdminGrantApprovals", x => x.Id);
+                    table.PrimaryKey("PK_admin_grant_approvals", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "AdminGrantRequests",
+                name: "admin_grant_requests",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -125,11 +125,11 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AdminGrantRequests", x => x.Id);
+                    table.PrimaryKey("PK_admin_grant_requests", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "AuditEvents",
+                name: "audit_events",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -144,11 +144,11 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AuditEvents", x => x.Id);
+                    table.PrimaryKey("PK_audit_events", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "AuthSessions",
+                name: "auth_sessions",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -162,11 +162,11 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AuthSessions", x => x.Id);
+                    table.PrimaryKey("PK_auth_sessions", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "Careers",
+                name: "careers",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -177,11 +177,11 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Careers", x => x.Id);
+                    table.PrimaryKey("PK_careers", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "Profiles",
+                name: "profiles",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -196,11 +196,11 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Profiles", x => x.Id);
+                    table.PrimaryKey("PK_profiles", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "ProgramPeriods",
+                name: "program_periods",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -212,11 +212,11 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ProgramPeriods", x => x.Id);
+                    table.PrimaryKey("PK_program_periods", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "Programs",
+                name: "programs",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -229,11 +229,11 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Programs", x => x.Id);
+                    table.PrimaryKey("PK_programs", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "RoleAssignments",
+                name: "role_assignments",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -250,7 +250,7 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_RoleAssignments", x => x.Id);
+                    table.PrimaryKey("PK_role_assignments", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -321,43 +321,43 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "AcademicPeriods");
+                name: "academic_periods");
 
             migrationBuilder.DropTable(
-                name: "AccountApprovalRequests");
+                name: "account_approval_requests");
 
             migrationBuilder.DropTable(
-                name: "Activities");
+                name: "activities");
 
             migrationBuilder.DropTable(
-                name: "ActivityReschedules");
+                name: "activity_reschedules");
 
             migrationBuilder.DropTable(
-                name: "AdminGrantApprovals");
+                name: "admin_grant_approvals");
 
             migrationBuilder.DropTable(
-                name: "AdminGrantRequests");
+                name: "admin_grant_requests");
 
             migrationBuilder.DropTable(
-                name: "AuditEvents");
+                name: "audit_events");
 
             migrationBuilder.DropTable(
-                name: "AuthSessions");
+                name: "auth_sessions");
 
             migrationBuilder.DropTable(
-                name: "Careers");
+                name: "careers");
 
             migrationBuilder.DropTable(
-                name: "Profiles");
+                name: "profiles");
 
             migrationBuilder.DropTable(
-                name: "ProgramPeriods");
+                name: "program_periods");
 
             migrationBuilder.DropTable(
-                name: "Programs");
+                name: "programs");
 
             migrationBuilder.DropTable(
-                name: "RoleAssignments");
+                name: "role_assignments");
 
             migrationBuilder.DropTable(
                 name: "user_logins");

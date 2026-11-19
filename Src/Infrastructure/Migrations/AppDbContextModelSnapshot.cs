@@ -75,7 +75,7 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AcademicPeriods");
+                    b.ToTable("academic_periods", (string)null);
                 });
 
             modelBuilder.Entity("U_VoluntApp_Core.Src.Domain.Entities.AccountApprovalRequest", b =>
@@ -122,7 +122,7 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AccountApprovalRequests");
+                    b.ToTable("account_approval_requests", (string)null);
                 });
 
             modelBuilder.Entity("U_VoluntApp_Core.Src.Domain.Entities.Activity", b =>
@@ -187,7 +187,7 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Activities");
+                    b.ToTable("activities", (string)null);
                 });
 
             modelBuilder.Entity("U_VoluntApp_Core.Src.Domain.Entities.ActivityReschedule", b =>
@@ -234,7 +234,7 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ActivityReschedules");
+                    b.ToTable("activity_reschedules", (string)null);
                 });
 
             modelBuilder.Entity("U_VoluntApp_Core.Src.Domain.Entities.AdminGrantApproval", b =>
@@ -268,7 +268,7 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AdminGrantApprovals");
+                    b.ToTable("admin_grant_approvals", (string)null);
                 });
 
             modelBuilder.Entity("U_VoluntApp_Core.Src.Domain.Entities.AdminGrantRequest", b =>
@@ -300,7 +300,7 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AdminGrantRequests");
+                    b.ToTable("admin_grant_requests", (string)null);
                 });
 
             modelBuilder.Entity("U_VoluntApp_Core.Src.Domain.Entities.AuditEvent", b =>
@@ -343,7 +343,7 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AuditEvents");
+                    b.ToTable("audit_events", (string)null);
                 });
 
             modelBuilder.Entity("U_VoluntApp_Core.Src.Domain.Entities.AuthSession", b =>
@@ -381,7 +381,7 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AuthSessions");
+                    b.ToTable("auth_sessions", (string)null);
                 });
 
             modelBuilder.Entity("U_VoluntApp_Core.Src.Domain.Entities.Career", b =>
@@ -410,7 +410,7 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Careers");
+                    b.ToTable("careers", (string)null);
                 });
 
             modelBuilder.Entity("U_VoluntApp_Core.Src.Domain.Entities.Profile", b =>
@@ -452,7 +452,7 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Profiles");
+                    b.ToTable("profiles", (string)null);
                 });
 
             modelBuilder.Entity("U_VoluntApp_Core.Src.Domain.Entities.Program", b =>
@@ -489,7 +489,7 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Programs");
+                    b.ToTable("programs", (string)null);
                 });
 
             modelBuilder.Entity("U_VoluntApp_Core.Src.Domain.Entities.ProgramPeriod", b =>
@@ -520,7 +520,7 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ProgramPeriods");
+                    b.ToTable("program_periods", (string)null);
                 });
 
             modelBuilder.Entity("U_VoluntApp_Core.Src.Domain.Entities.RoleAssignment", b =>
@@ -568,7 +568,7 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("RoleAssignments");
+                    b.ToTable("role_assignments", (string)null);
                 });
 
             modelBuilder.Entity("U_VoluntApp_Core.Src.Infrastructure.Persistence.AppUser", b =>
