@@ -23,6 +23,20 @@ public interface IAccountDirectory
         DateTime? suspendedAt,
         CancellationToken cancellationToken = default);
 
+    Task SetVerificationAsync(
+        Guid userId,
+        DateTime? verifiedAt,
+        Guid? verifiedBy,
+        CancellationToken cancellationToken = default);
+
+    // Cambia el correo de acceso sin OTP (lo hace un ADMIN), rota el sello y revoca todas las sesiones.
+    // Devuelve false si el correo ya pertenece a otra cuenta.
+    Task<bool> ReplaceAccessEmailAsync(
+        Guid userId,
+        string newEmail,
+        DateTime now,
+        CancellationToken cancellationToken = default);
+
     Task RevokeSessionsAsync(
         IReadOnlyList<Guid> sessionIds,
         DateTime revokedAt,

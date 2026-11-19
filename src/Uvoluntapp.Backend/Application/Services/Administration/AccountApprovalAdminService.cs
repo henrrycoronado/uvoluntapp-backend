@@ -40,6 +40,9 @@ public sealed class AccountApprovalAdminService(
 
         request.Approve(actorId, now);
         await accounts.SetStatusAsync(request.UserId, AccountStatus.ACTIVE, null, cancellationToken);
+
+        // Aprobar una cuenta nueva es también verificarla.
+        await accounts.SetVerificationAsync(request.UserId, now, actorId, cancellationToken);
         await audit.RecordAccountApprovedAsync(actorId, request, now, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
     }
