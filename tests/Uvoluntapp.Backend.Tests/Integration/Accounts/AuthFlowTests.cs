@@ -287,6 +287,32 @@ public sealed class AuthFlowTests(AuthFixture fixture) : IClassFixture<AuthFixtu
         await AssertProblemAsync(await client.PostAsJsonAsync("login", new { email, password }), HttpStatusCode.UnprocessableEntity);
     }
 
+    [Fact]
+    public async Task PasswordResetLinkWorksOnceRevokesEverySessionAndIsAudited()
+    {
+        using var client = fixture.Client();
+        var request = NewRegistration("ucb.edu.bo");
+        await RegisterAsync(client, request);
+        var verified = await (await VerifyAsync(client, request.Email)).Content.ReadFromJsonAsync<VerifyOtpResponse>();
+
+        (await client.PostAsJsonAsync("forgot-password", new { email = request.Email })).EnsureSuccessStatusCode();
+        var link = System.Text.RegularExpressions.Regex.Match(fixture.Mail.Message(request.Email), @"https?://\S+/restablecer\?token=(\S+)");
+        Assert.True(link.Success);
+        var token = Uri.UnescapeDataString(link.Groups[1].Value);
+
+        await AssertProblemAsync(await client.PostAsJsonAsync("reset-password", new { token, newPassword = "corta" }), HttpStatusCode.BadRequest);
+        var password = Guid.NewGuid().ToString("N");
+        (await client.PostAsJsonAsync("reset-password", new { token, newPassword = password })).EnsureSuccessStatusCode();
+        await AssertProblemAsync(await client.PostAsJsonAsync("reset-password", new { token, newPassword = password }), HttpStatusCode.UnprocessableEntity);
+
+        Assert.False((await client.PostAsJsonAsync("refresh", new { refreshToken = verified!.Tokens!.RefreshToken })).IsSuccessStatusCode);
+        Assert.False((await client.PostAsJsonAsync("login", new { request.Email, request.Password })).IsSuccessStatusCode);
+        Assert.True((await client.PostAsJsonAsync("login", new { request.Email, password })).IsSuccessStatusCode);
+        await using var db = fixture.Context();
+        var user = await db.Users.SingleAsync(u => u.Email == request.Email);
+        Assert.True(await db.AuditEvents.AnyAsync(e => e.Action == "PASSWORD_RESET" && e.ResourceId == user.Id));
+    }
+
     private async Task<string> GoogleOnlyUserAsync(AccountStatus status)
     {
         var email = $"{Guid.NewGuid():N}@example.org";
