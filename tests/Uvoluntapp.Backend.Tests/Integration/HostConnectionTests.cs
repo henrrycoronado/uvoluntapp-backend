@@ -14,8 +14,8 @@ public sealed class HostConnectionTests : IDisposable
     private const string EnvironmentKey = "DB_CONNECTION_STRING";
     private const string DefaultConnection = "Host=default.invalid;Database=config_test";
     private const string EnvironmentConnection = "Host=environment.invalid;Database=config_test";
-    private readonly string? originalDefault = Environment.GetEnvironmentVariable(DefaultKey);
-    private readonly string? originalEnvironment = Environment.GetEnvironmentVariable(EnvironmentKey);
+    private readonly string? _originalDefault = Environment.GetEnvironmentVariable(DefaultKey);
+    private readonly string? _originalEnvironment = Environment.GetEnvironmentVariable(EnvironmentKey);
 
     [Theory]
     [InlineData(null, EnvironmentConnection, EnvironmentConnection)]
@@ -45,7 +45,7 @@ public sealed class HostConnectionTests : IDisposable
         Assert.Contains(EnvironmentKey, error.Message);
     }
 
-    public void Dispose() => SetConnections(originalDefault, originalEnvironment);
+    public void Dispose() => SetConnections(_originalDefault, _originalEnvironment);
 
     private static void SetConnections(string? defaultValue, string? environmentValue)
     {

@@ -28,8 +28,10 @@ public sealed class EnumPersistenceTests(PostgresFixture fixture) : IClassFixtur
         var period = new AcademicPeriod();
         var activity = new Activity
         {
-            AcademicPeriodId = period.Id, Modality = ActivityModality.HYBRID,
-            StartsAt = DateTime.UtcNow, EndsAt = DateTime.UtcNow.AddHours(1)
+            AcademicPeriodId = period.Id,
+            Modality = ActivityModality.HYBRID,
+            StartsAt = DateTime.UtcNow,
+            EndsAt = DateTime.UtcNow.AddHours(1)
         };
         db.AddRange(approval, grant, role, program, period, activity);
         await db.SaveChangesAsync();
@@ -56,14 +58,18 @@ public sealed class EnumPersistenceTests(PostgresFixture fixture) : IClassFixtur
         var period = db.AcademicPeriods.Add(new AcademicPeriod()).Entity;
         var activity = db.Activities.Add(new Activity
         {
-            AcademicPeriodId = period.Id, Modality = ActivityModality.VIRTUAL,
-            StartsAt = DateTime.UtcNow, EndsAt = DateTime.UtcNow.AddHours(1)
+            AcademicPeriodId = period.Id,
+            Modality = ActivityModality.VIRTUAL,
+            StartsAt = DateTime.UtcNow,
+            EndsAt = DateTime.UtcNow.AddHours(1)
         }).Entity;
 
         var role = new RoleAssignment
         {
-            UserId = user.Id, GrantedBy = user.Id,
-            Role = scope == RoleScope.GLOBAL ? AssignedRole.ADMIN : AssignedRole.PROGRAM_LEADER, Scope = scope,
+            UserId = user.Id,
+            GrantedBy = user.Id,
+            Role = scope == RoleScope.GLOBAL ? AssignedRole.ADMIN : AssignedRole.PROGRAM_LEADER,
+            Scope = scope,
             ScopeId = scope switch { RoleScope.PROGRAM => program.Id, RoleScope.ACTIVITY => activity.Id, _ => null }
         };
         db.Add(role);
@@ -87,7 +93,9 @@ public sealed class EnumPersistenceTests(PostgresFixture fixture) : IClassFixtur
         var user = db.Users.Add(new AppUser()).Entity;
         var role = db.RoleAssignments.Add(new RoleAssignment
         {
-            UserId = user.Id, GrantedBy = user.Id, Role = AssignedRole.ADMIN
+            UserId = user.Id,
+            GrantedBy = user.Id,
+            Role = AssignedRole.ADMIN
         }).Entity;
         await db.SaveChangesAsync();
 

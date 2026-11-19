@@ -8,13 +8,13 @@ namespace Uvoluntapp.Backend.Tests.Integration;
 
 public sealed class PostgresFixture : IAsyncLifetime
 {
-    private readonly PostgreSqlContainer container = new PostgreSqlBuilder("postgres:16-alpine")
+    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:16-alpine")
         .WithDatabase("uvoluntapp_test")
         .WithUsername("uvoluntapp")
         .WithPassword("uvoluntapp_test_password")
         .Build();
 
-    public string ConnectionString => container.GetConnectionString();
+    public string ConnectionString => _container.GetConnectionString();
 
     public AppDbContext CreateContext()
     {
@@ -27,7 +27,7 @@ public sealed class PostgresFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        await container.StartAsync();
+        await _container.StartAsync();
 
         await using var context = CreateContext();
         await context.Database.MigrateAsync();
@@ -35,6 +35,6 @@ public sealed class PostgresFixture : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
-        await container.DisposeAsync();
+        await _container.DisposeAsync();
     }
 }

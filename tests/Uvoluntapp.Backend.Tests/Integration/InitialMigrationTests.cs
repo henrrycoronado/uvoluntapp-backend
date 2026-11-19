@@ -8,7 +8,7 @@ namespace Uvoluntapp.Backend.Tests.Integration;
 
 public sealed class InitialMigrationTests(PostgresFixture fixture) : IClassFixture<PostgresFixture>
 {
-    private static readonly string[] ExpectedTables =
+    private static readonly string[] _expectedTables =
     [
         "users", "user_logins", "profiles", "careers", "auth_sessions", "account_approval_requests",
         "role_assignments", "admin_grant_requests", "admin_grant_approvals", "academic_periods",
@@ -26,7 +26,7 @@ public sealed class InitialMigrationTests(PostgresFixture fixture) : IClassFixtu
               AND table_name <> '__EFMigrationsHistory'
             """).ToListAsync();
 
-        Assert.Equal(ExpectedTables.Order(StringComparer.Ordinal), tables.Order(StringComparer.Ordinal));
+        Assert.Equal(_expectedTables.Order(StringComparer.Ordinal), tables.Order(StringComparer.Ordinal));
     }
 
     [Fact]

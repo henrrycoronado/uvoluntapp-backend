@@ -21,7 +21,9 @@ public sealed class SchemaConstraintTests(PostgresFixture fixture) : IClassFixtu
         await db.SaveChangesAsync();
         db.RoleAssignments.Add(new RoleAssignment
         {
-            UserId = Guid.NewGuid(), GrantedBy = grantor.Id, Role = AssignedRole.ADMIN
+            UserId = Guid.NewGuid(),
+            GrantedBy = grantor.Id,
+            Role = AssignedRole.ADMIN
         });
 
         await AssertViolation(db, PostgresErrorCodes.ForeignKeyViolation, "FK_role_assignments_users_user_id");
@@ -33,8 +35,10 @@ public sealed class SchemaConstraintTests(PostgresFixture fixture) : IClassFixtu
         await using var db = fixture.CreateContext();
         db.Activities.Add(new Activity
         {
-            AcademicPeriodId = Guid.NewGuid(), Modality = ActivityModality.VIRTUAL,
-            StartsAt = DateTime.UtcNow, EndsAt = DateTime.UtcNow.AddHours(1)
+            AcademicPeriodId = Guid.NewGuid(),
+            Modality = ActivityModality.VIRTUAL,
+            StartsAt = DateTime.UtcNow,
+            EndsAt = DateTime.UtcNow.AddHours(1)
         });
 
         await AssertViolation(db, PostgresErrorCodes.ForeignKeyViolation, "FK_activities_academic_periods_period_id");
@@ -62,8 +66,10 @@ public sealed class SchemaConstraintTests(PostgresFixture fixture) : IClassFixtu
         var program = db.Programs.Add(new VolunteerProgram()).Entity;
         var activity = db.Activities.Add(new Activity
         {
-            AcademicPeriodId = period.Id, Modality = ActivityModality.VIRTUAL,
-            StartsAt = DateTime.UtcNow, EndsAt = DateTime.UtcNow.AddHours(1)
+            AcademicPeriodId = period.Id,
+            Modality = ActivityModality.VIRTUAL,
+            StartsAt = DateTime.UtcNow,
+            EndsAt = DateTime.UtcNow.AddHours(1)
         }).Entity;
         await db.SaveChangesAsync();
 
@@ -86,8 +92,11 @@ public sealed class SchemaConstraintTests(PostgresFixture fixture) : IClassFixtu
         var user = db.Users.Add(new AppUser()).Entity;
         db.RoleAssignments.Add(new RoleAssignment
         {
-            UserId = user.Id, GrantedBy = user.Id, Role = AssignedRole.PROGRAM_LEADER,
-            Scope = scope, ScopeId = hasId ? Guid.NewGuid() : null
+            UserId = user.Id,
+            GrantedBy = user.Id,
+            Role = AssignedRole.PROGRAM_LEADER,
+            Scope = scope,
+            ScopeId = hasId ? Guid.NewGuid() : null
         });
 
         await AssertViolation(db, PostgresErrorCodes.CheckViolation, "ck_role_assignments_scope_id");
@@ -102,8 +111,11 @@ public sealed class SchemaConstraintTests(PostgresFixture fixture) : IClassFixtu
         var user = db.Users.Add(new AppUser()).Entity;
         db.RoleAssignments.Add(new RoleAssignment
         {
-            UserId = user.Id, GrantedBy = user.Id, Role = AssignedRole.PROGRAM_LEADER,
-            Scope = scope, ScopeId = Guid.NewGuid()
+            UserId = user.Id,
+            GrantedBy = user.Id,
+            Role = AssignedRole.PROGRAM_LEADER,
+            Scope = scope,
+            ScopeId = Guid.NewGuid()
         });
 
         await AssertViolation(db, PostgresErrorCodes.ForeignKeyViolation, constraint);
@@ -117,7 +129,8 @@ public sealed class SchemaConstraintTests(PostgresFixture fixture) : IClassFixtu
         var beneficiary = db.Users.Add(new AppUser()).Entity;
         var request = db.AdminGrantRequests.Add(new AdminGrantRequest
         {
-            RequestedBy = admin.Id, BeneficiaryId = beneficiary.Id
+            RequestedBy = admin.Id,
+            BeneficiaryId = beneficiary.Id
         }).Entity;
         db.AdminGrantApprovals.Add(new AdminGrantApproval { RequestId = request.Id, AdminId = admin.Id });
         await db.SaveChangesAsync();
@@ -137,8 +150,11 @@ public sealed class SchemaConstraintTests(PostgresFixture fixture) : IClassFixtu
         var start = DateTime.UtcNow;
         db.Activities.Add(new Activity
         {
-            AcademicPeriodId = period.Id, Modality = ActivityModality.IN_PERSON,
-            StartsAt = start, EndsAt = start.AddHours(hours), Capacity = capacity
+            AcademicPeriodId = period.Id,
+            Modality = ActivityModality.IN_PERSON,
+            StartsAt = start,
+            EndsAt = start.AddHours(hours),
+            Capacity = capacity
         });
 
         await AssertViolation(db, PostgresErrorCodes.CheckViolation, constraint);
@@ -192,14 +208,20 @@ public sealed class SchemaConstraintTests(PostgresFixture fixture) : IClassFixtu
         var period = db.AcademicPeriods.Add(new AcademicPeriod()).Entity;
         var activity = db.Activities.Add(new Activity
         {
-            AcademicPeriodId = period.Id, Modality = ActivityModality.IN_PERSON,
-            StartsAt = start, EndsAt = start.AddHours(1)
+            AcademicPeriodId = period.Id,
+            Modality = ActivityModality.IN_PERSON,
+            StartsAt = start,
+            EndsAt = start.AddHours(1)
         }).Entity;
         db.ActivityReschedules.Add(new ActivityReschedule
         {
-            ActivityId = activity.Id, AuthorId = user.Id, Reason = "Cambio de horario",
-            PreviousStartsAt = start, PreviousEndsAt = start.AddHours(previousHours),
-            NewStartsAt = start.AddDays(1), NewEndsAt = start.AddDays(1).AddHours(newHours)
+            ActivityId = activity.Id,
+            AuthorId = user.Id,
+            Reason = "Cambio de horario",
+            PreviousStartsAt = start,
+            PreviousEndsAt = start.AddHours(previousHours),
+            NewStartsAt = start.AddDays(1),
+            NewEndsAt = start.AddDays(1).AddHours(newHours)
         });
 
         await AssertViolation(db, PostgresErrorCodes.CheckViolation, constraint);
