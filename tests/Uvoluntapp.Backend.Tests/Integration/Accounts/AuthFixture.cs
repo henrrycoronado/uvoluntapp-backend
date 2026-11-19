@@ -13,11 +13,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using StackExchange.Redis;
 using Testcontainers.PostgreSql;
-
-using Xunit;
-
 using Uvoluntapp.Backend.Application.Interfaces.Accounts;
 using Uvoluntapp.Backend.Infrastructure.Persistence;
+using Xunit;
+
 namespace Uvoluntapp.Backend.Tests.Integration.Accounts;
 
 public sealed class AuthFixture : IAsyncLifetime

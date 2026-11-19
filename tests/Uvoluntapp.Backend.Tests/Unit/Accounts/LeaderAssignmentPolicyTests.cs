@@ -1,10 +1,10 @@
 using System.Collections.Generic;
 using System;
-
-using Xunit;
 using Uvoluntapp.Backend.Domain.Entities.Accounts;
 using Uvoluntapp.Backend.Domain.Policies;
 using Uvoluntapp.Backend.Domain.Utils.Enums;
+using Xunit;
+
 namespace Uvoluntapp.Backend.Tests.Unit.Accounts;
 
 public sealed class LeaderAssignmentPolicyTests

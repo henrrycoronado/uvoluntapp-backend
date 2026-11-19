@@ -2,11 +2,10 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System;
-
-using Xunit;
-
 using Uvoluntapp.Backend.Application.DTOs.Accounts;
 using Uvoluntapp.Backend.Application.Validators.Accounts;
+using Xunit;
+
 namespace Uvoluntapp.Backend.Tests.Unit.Accounts;
 
 public class RegisterRequestValidatorTests

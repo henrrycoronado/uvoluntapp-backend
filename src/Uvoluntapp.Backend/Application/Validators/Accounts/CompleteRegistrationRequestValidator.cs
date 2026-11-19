@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-
 using Uvoluntapp.Backend.Application.DTOs.Accounts;
 
 namespace Uvoluntapp.Backend.Application.Validators.Accounts;
