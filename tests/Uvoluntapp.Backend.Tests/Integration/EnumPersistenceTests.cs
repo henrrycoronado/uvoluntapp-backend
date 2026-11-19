@@ -10,7 +10,6 @@ using Uvoluntapp.Backend.Domain.Programs;
 using Uvoluntapp.Backend.Infrastructure.Identity;
 using Uvoluntapp.Backend.Infrastructure.Persistence;
 using Xunit;
-using CoreProgram = Uvoluntapp.Backend.Domain.Programs.Program;
 
 namespace Uvoluntapp.Backend.Tests.Integration;
 
@@ -25,7 +24,7 @@ public sealed class EnumPersistenceTests(PostgresFixture fixture) : IClassFixtur
         var approval = new AccountApprovalRequest { UserId = user.Id };
         var grant = new AdminGrantRequest { BeneficiaryId = user.Id, RequestedBy = reviewer.Id };
         var role = new RoleAssignment { UserId = user.Id, GrantedBy = reviewer.Id, Role = AssignedRole.ADMIN };
-        var program = new CoreProgram();
+        var program = new VolunteerProgram();
         var period = new AcademicPeriod();
         var activity = new Activity
         {
@@ -53,7 +52,7 @@ public sealed class EnumPersistenceTests(PostgresFixture fixture) : IClassFixtur
     {
         await using var db = fixture.CreateContext();
         var user = db.Users.Add(new AppUser()).Entity;
-        var program = db.Programs.Add(new CoreProgram()).Entity;
+        var program = db.Programs.Add(new VolunteerProgram()).Entity;
         var period = db.AcademicPeriods.Add(new AcademicPeriod()).Entity;
         var activity = db.Activities.Add(new Activity
         {

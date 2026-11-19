@@ -7,7 +7,6 @@ using Uvoluntapp.Backend.Domain.Accounts;
 using Uvoluntapp.Backend.Domain.Activities;
 using Uvoluntapp.Backend.Domain.Programs;
 using Uvoluntapp.Backend.Infrastructure.Identity;
-using CoreProgram = Uvoluntapp.Backend.Domain.Programs.Program;
 
 namespace Uvoluntapp.Backend.Infrastructure.Persistence;
 
@@ -30,7 +29,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<AcademicPeriod> AcademicPeriods => Set<AcademicPeriod>();
 
-    public DbSet<CoreProgram> Programs => Set<CoreProgram>();
+    public DbSet<VolunteerProgram> Programs => Set<VolunteerProgram>();
 
     public DbSet<ProgramPeriod> ProgramPeriods => Set<ProgramPeriod>();
 
@@ -108,7 +107,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
                 .HasComputedColumnSql("CASE WHEN scope = 'PROGRAM' THEN scope_id END", stored: true);
             role.Property<Guid?>("scope_activity_id")
                 .HasComputedColumnSql("CASE WHEN scope = 'ACTIVITY' THEN scope_id END", stored: true);
-            role.HasOne<CoreProgram>().WithMany().HasForeignKey("scope_program_id");
+            role.HasOne<VolunteerProgram>().WithMany().HasForeignKey("scope_program_id");
             role.HasOne<Activity>().WithMany().HasForeignKey("scope_activity_id");
         });
 
@@ -118,11 +117,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             period.Property(p => p.StartsAt).HasColumnName("start_date");
             period.Property(p => p.EndsAt).HasColumnName("end_date");
         });
-        model.Entity<CoreProgram>().ToTable("programs");
+        model.Entity<VolunteerProgram>().ToTable("programs");
         model.Entity<ProgramPeriod>(link =>
         {
             link.ToTable("program_periods");
-            link.HasOne<CoreProgram>().WithMany().HasForeignKey(p => p.ProgramId);
+            link.HasOne<VolunteerProgram>().WithMany().HasForeignKey(p => p.ProgramId);
             link.HasOne<AcademicPeriod>().WithMany().HasForeignKey(p => p.AcademicPeriodId);
         });
         model.Entity<Activity>(activity =>
@@ -134,7 +133,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             });
             activity.Property(a => a.AcademicPeriodId).HasColumnName("period_id");
             activity.HasOne<AcademicPeriod>().WithMany().HasForeignKey(a => a.AcademicPeriodId);
-            activity.HasOne<CoreProgram>().WithMany().HasForeignKey(a => a.ProgramId);
+            activity.HasOne<VolunteerProgram>().WithMany().HasForeignKey(a => a.ProgramId);
             activity.HasOne<ProgramPeriod>().WithMany()
                 .HasForeignKey(a => new { a.ProgramId, a.AcademicPeriodId })
                 .HasPrincipalKey(p => new { p.ProgramId, p.AcademicPeriodId });

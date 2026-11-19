@@ -8,7 +8,6 @@ using Uvoluntapp.Backend.Domain.Programs;
 using Uvoluntapp.Backend.Infrastructure.Identity;
 using Uvoluntapp.Backend.Infrastructure.Persistence;
 using Xunit;
-using CoreProgram = Uvoluntapp.Backend.Domain.Programs.Program;
 
 namespace Uvoluntapp.Backend.Tests.Integration;
 
@@ -45,7 +44,7 @@ public sealed class SchemaConstraintTests(PostgresFixture fixture) : IClassFixtu
     public async Task ProgramPeriodRejectsDuplicatePair()
     {
         await using var db = fixture.CreateContext();
-        var program = db.Programs.Add(new CoreProgram()).Entity;
+        var program = db.Programs.Add(new VolunteerProgram()).Entity;
         var period = db.AcademicPeriods.Add(new AcademicPeriod()).Entity;
         db.ProgramPeriods.Add(new ProgramPeriod { ProgramId = program.Id, AcademicPeriodId = period.Id });
         await db.SaveChangesAsync();
@@ -60,7 +59,7 @@ public sealed class SchemaConstraintTests(PostgresFixture fixture) : IClassFixtu
     {
         await using var db = fixture.CreateContext();
         var period = db.AcademicPeriods.Add(new AcademicPeriod()).Entity;
-        var program = db.Programs.Add(new CoreProgram()).Entity;
+        var program = db.Programs.Add(new VolunteerProgram()).Entity;
         var activity = db.Activities.Add(new Activity
         {
             AcademicPeriodId = period.Id, Modality = ActivityModality.VIRTUAL,

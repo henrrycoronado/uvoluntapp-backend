@@ -605,7 +605,7 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                     b.ToTable("profiles", (string)null);
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Programs.Program", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Programs.VolunteerProgram", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -915,7 +915,7 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Uvoluntapp.Backend.Domain.Programs.Program", null)
+                    b.HasOne("Uvoluntapp.Backend.Domain.Programs.VolunteerProgram", null)
                         .WithMany()
                         .HasForeignKey("ProgramId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -1011,7 +1011,7 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Uvoluntapp.Backend.Domain.Programs.Program", null)
+                    b.HasOne("Uvoluntapp.Backend.Domain.Programs.VolunteerProgram", null)
                         .WithMany()
                         .HasForeignKey("ProgramId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1037,7 +1037,7 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         .HasForeignKey("scope_activity_id")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("Uvoluntapp.Backend.Domain.Programs.Program", null)
+                    b.HasOne("Uvoluntapp.Backend.Domain.Programs.VolunteerProgram", null)
                         .WithMany()
                         .HasForeignKey("scope_program_id")
                         .OnDelete(DeleteBehavior.Restrict);

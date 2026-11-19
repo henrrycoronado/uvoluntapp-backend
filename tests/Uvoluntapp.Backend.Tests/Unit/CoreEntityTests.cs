@@ -2,7 +2,6 @@ using System;
 using Uvoluntapp.Backend.Domain.Activities;
 using Uvoluntapp.Backend.Domain.Programs;
 using Xunit;
-using CoreProgram = Uvoluntapp.Backend.Domain.Programs.Program;
 
 namespace Uvoluntapp.Backend.Tests.Unit;
 
@@ -11,7 +10,7 @@ public class CoreEntityTests
     [Fact]
     public void ProgramCanActivateAndDeactivate()
     {
-        var program = new CoreProgram();
+        var program = new VolunteerProgram();
         Assert.Equal(ProgramStatus.DRAFT, program.Status);
 
         program.Activate();

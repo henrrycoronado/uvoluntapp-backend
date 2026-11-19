@@ -1,6 +1,6 @@
 namespace Uvoluntapp.Backend.Domain.Programs;
 
-public sealed class Program : Entity
+public sealed class VolunteerProgram : Entity
 {
     public string Name { get; set; } = string.Empty;
 
