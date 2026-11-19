@@ -13,8 +13,6 @@ tests/obj/
 
 .env
 .env.*
-docs/.env
-docs/.env.*
 
 *.user
 *.suo

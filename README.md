@@ -208,7 +208,6 @@ Catálogo administrativo centralizado para definir etapas (states) y categorías
 El repositorio incluye pipelines preconfigurados:
 - **CI (Integración Continua):** Valida compilación, restore y formato de código (StyleCop) en PRs hacia `develop`.
 - **CD (Despliegue Continuo):** Construye la imagen Docker y la sube a GHCR.
-- **Secretos:** Revisa el archivo `.env.secrets.example` para saber qué secretos debes configurar en GitHub para que el Action corra correctamente (incluyendo opciones para BD remota o local).
 
 ---
 
