@@ -11,6 +11,7 @@ public partial class Program
         var app = builder.Build();
         app.UseExceptionHandler();
         app.UseRouting();
+        app.UseCors("web");
         app.UseAuthentication();
         app.UseAuthorization();
         app.MapControllers();

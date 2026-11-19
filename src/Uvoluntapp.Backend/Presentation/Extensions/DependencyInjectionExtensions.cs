@@ -92,6 +92,13 @@ public static class DependencyInjectionExtensions
         services.AddScoped<UserAdministrationService>();
         services.AddScoped<ProfileApplicationService>();
 
+        var allowedOrigins = (configuration["CORS_ALLOWED_ORIGINS"] ?? "http://localhost:5173")
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        services.AddCors(options => options.AddPolicy("web", policy => policy
+            .WithOrigins(allowedOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod()));
+
         services.AddDataProtection();
         services.AddProblemDetails();
         services.AddExceptionHandler<GlobalExceptionHandler>();
