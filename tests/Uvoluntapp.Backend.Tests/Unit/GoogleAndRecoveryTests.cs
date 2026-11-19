@@ -99,6 +99,36 @@ public sealed class GoogleAndRecoveryTests
         Assert.Equal(0, unknown.SavedTokens);
     }
 
+    [Fact]
+    public async Task InstitutionalGoogleAccountOpensASession()
+    {
+        var issuer = new FakeSessionIssuer();
+        var response = await new GoogleAuthService(
+                new FakeGoogleValidator(new GoogleTokenClaims("sub-1", "ana@ucb.edu.bo", true, "expected", "ucb.edu.bo")),
+                new FakeGoogleAccounts(),
+                issuer)
+            .AuthenticateAsync(new GoogleAuthRequest("token"), new[] { "expected" });
+
+        Assert.Equal("ACTIVE", response.AccountStatus);
+        Assert.NotNull(response.Tokens);
+        Assert.Equal(1, issuer.Issued);
+    }
+
+    [Fact]
+    public async Task NewExternalGoogleAccountWaitsForApprovalWithoutSession()
+    {
+        var issuer = new FakeSessionIssuer();
+        var response = await new GoogleAuthService(
+                new FakeGoogleValidator(new GoogleTokenClaims("sub-2", "ana@gmail.com", true, "expected", null)),
+                new FakeGoogleAccounts(),
+                issuer)
+            .AuthenticateAsync(new GoogleAuthRequest("token"), new[] { "expected" });
+
+        Assert.Equal("PENDING_APPROVAL", response.AccountStatus);
+        Assert.Null(response.Tokens);
+        Assert.Equal(0, issuer.Issued);
+    }
+
     private static Task<GoogleAuthResponse> AuthenticateAsync(
         FakeGoogleAccounts accounts,
         GoogleTokenClaims claims) =>
@@ -120,6 +150,17 @@ public sealed class GoogleAndRecoveryTests
             string idToken,
             IReadOnlyCollection<string> allowedAudiences,
             CancellationToken cancellationToken = default) => Task.FromResult<GoogleTokenClaims?>(claims);
+    }
+
+    private sealed class FakeSessionIssuer : ISessionIssuer
+    {
+        public int Issued { get; private set; }
+
+        public Task<TokenPair> IssueAsync(Guid userId, CancellationToken cancellationToken = default)
+        {
+            Issued++;
+            return Task.FromResult(new TokenPair { AccessToken = "a", RefreshToken = "r", ExpiresAt = DateTime.UtcNow.AddHours(1) });
+        }
     }
 
     private sealed class FakeGoogleAccounts : IGoogleAccountStore

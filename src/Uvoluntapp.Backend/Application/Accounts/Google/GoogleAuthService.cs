@@ -4,7 +4,8 @@ namespace Uvoluntapp.Backend.Application.Accounts.Google;
 
 public sealed class GoogleAuthService(
     IGoogleTokenValidator tokenValidator,
-    IGoogleAccountStore accounts)
+    IGoogleAccountStore accounts,
+    ISessionIssuer? sessions = null)
 {
     public async Task<GoogleAuthResponse> AuthenticateAsync(
         GoogleAuthRequest request,
@@ -55,6 +56,10 @@ public sealed class GoogleAuthService(
                 cancellationToken);
         }
 
-        return new GoogleAuthResponse(account.Status.ToString(), decision.IsNewAccount, null);
+        // Solo una cuenta activa abre sesión; una externa nueva espera la aprobación de un ADMIN.
+        var tokens = account.Status == AccountStatus.ACTIVE && sessions is not null
+            ? await sessions.IssueAsync(account.UserId, cancellationToken)
+            : null;
+        return new GoogleAuthResponse(account.Status.ToString(), decision.IsNewAccount, tokens);
     }
 }
