@@ -1,72 +1,70 @@
+# Entorno local de Uvoluntapp: PostgreSQL 16, Redis y Mailpit.
+#
+# Puertos publicados en localhost (sobrescribibles desde .env):
+#   - PostgreSQL: 5432  (POSTGRES_PORT)
+#   - Redis:      6379  (REDIS_PORT)
+#   - Mailpit:    SMTP 1025 (MAILPIT_SMTP_PORT) y UI http://localhost:8025 (MAILPIT_UI_PORT)
+#
+# Uso: docker compose up -d postgres redis mailpit
+
+name: uvoluntapp-local
+
 services:
-  postgres_db:
+  postgres:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:-uvoluntapp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_local}
+      POSTGRES_DB: ${POSTGRES_DB:-uvoluntapp}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
-  seq:
-    image: datalust/seq:latest
+  redis:
+    image: redis:7-alpine
     restart: unless-stopped
-    environment:
-      ACCEPT_EULA: Y
-      SEQ_FIRSTRUN_ADMINPASSWORD: ${SEQ_ADMIN_PASSWORD}
+    command: ["redis-server", "--appendonly", "yes"]
     ports:
-      - "5341:80"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
-      - seq_data:/data
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile
+  mailpit:
+    image: axllent/mailpit:v1.34.0
     restart: unless-stopped
     environment:
-      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
-      ASPNETCORE_URLS: ${ASPNETCORE_URLS}
-      ENABLE_HTTPS_REDIRECTION: ${ENABLE_HTTPS_REDIRECTION}
-      DB_CONNECTION_STRING: ${DB_CONNECTION_STRING}
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_ISSUER: ${JWT_ISSUER}
-      JWT_AUDIENCE: ${JWT_AUDIENCE}
-      JWT_EXPIRY_MINUTES: ${JWT_EXPIRY_MINUTES}
-      JWT_REFRESH_DAYS: ${JWT_REFRESH_DAYS}
-      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
-      S3_SECRET_KEY: ${S3_SECRET_KEY}
-      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
-      STORAGE_PUBLIC_BASE_URL: ${STORAGE_PUBLIC_BASE_URL}
-      STORAGE_UPLOAD_BUCKET: ${STORAGE_UPLOAD_BUCKET}
-      SUPERUSER_EMAIL: ${SUPERUSER_EMAIL}
-      SUPERUSER_PASSWORD: ${SUPERUSER_PASSWORD}
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
-      SMTP_HOST: ${SMTP_HOST}
-      SMTP_PORT: ${SMTP_PORT}
-      SMTP_USER: ${SMTP_USER}
-      SMTP_PASS: ${SMTP_PASS}
-      GOOGLE_CLIENT_IDS: ${GOOGLE_CLIENT_IDS}
-      GOOGLE_CLIENT_ID_DESKTOP: ${GOOGLE_CLIENT_ID_DESKTOP}
-      SEQ_URL: http://seq:5341
+      MP_DATABASE: /data/mailpit.db
+      MP_MAX_MESSAGES: 5000
     ports:
-      - "8080:8080"
-    depends_on:
-      postgres_db:
-        condition: service_healthy
-      seq:
-        condition: service_started
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+    volumes:
+      - mailpit_data:/data
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
 volumes:
   pgdata:
     driver: local
-  seq_data:
+  redis_data:
+    driver: local
+  mailpit_data:
     driver: local
