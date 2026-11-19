@@ -15,10 +15,13 @@ using Uvoluntapp.Backend.Application.Common;
 using Uvoluntapp.Backend.Application.Profiles;
 using Uvoluntapp.Backend.Application.Profiles.Ports;
 using Uvoluntapp.Backend.Application.Profiles.Services;
+using Uvoluntapp.Backend.Application.Programs.Ports;
+using Uvoluntapp.Backend.Application.Programs.Services;
 using Uvoluntapp.Backend.Infrastructure.Accounts;
 using Uvoluntapp.Backend.Infrastructure.Administration;
 using Uvoluntapp.Backend.Infrastructure.Identity;
 using Uvoluntapp.Backend.Infrastructure.Persistence;
+using Uvoluntapp.Backend.Infrastructure.Programs;
 using Uvoluntapp.Backend.Infrastructure.Seeding;
 using Uvoluntapp.Backend.Presentation.Accounts;
 using Uvoluntapp.Backend.Presentation.Errors;
@@ -74,6 +77,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IRecoveryAccountStore, RecoveryAccountStore>();
         services.AddScoped<IProfileStore, ProfileStore>();
         services.AddScoped<IAuditEventStore, AuditEventStore>();
+        services.AddScoped<IProgramReader, ProgramReader>();
 
         // Reglas de aplicación sin estado.
         services.AddSingleton<ContextAuthorizationService>();
@@ -91,6 +95,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<AccountApprovalAdminService>();
         services.AddScoped<UserAdministrationService>();
         services.AddScoped<ProfileApplicationService>();
+        services.AddScoped<ProgramQueryService>();
 
         var allowedOrigins = (configuration["CORS_ALLOWED_ORIGINS"] ?? "http://localhost:5173")
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);

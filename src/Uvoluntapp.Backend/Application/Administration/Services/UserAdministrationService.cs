@@ -24,7 +24,7 @@ public sealed class UserAdministrationService(
         int pageSize,
         CancellationToken cancellationToken = default)
     {
-        await guard.RequireGlobalAdminAsync(actorId, cancellationToken);
+        await RequireReviewerAsync(actorId, cancellationToken);
         var result = await accounts.SearchAsync(status, search, page, pageSize, cancellationToken);
         return new PaginatedItems<UserSummaryResponse>(
             result.Items.Select(u => new UserSummaryResponse(
@@ -37,7 +37,7 @@ public sealed class UserAdministrationService(
         Guid userId,
         CancellationToken cancellationToken = default)
     {
-        await guard.RequireGlobalAdminAsync(actorId, cancellationToken);
+        await RequireReviewerAsync(actorId, cancellationToken);
         var user = await accounts.FindAsync(userId, cancellationToken)
             ?? throw new NotFoundException("El usuario no existe.");
         var assignments = await roles.ListForUserAsync(userId, cancellationToken);
@@ -84,5 +84,14 @@ public sealed class UserAdministrationService(
         await audit.RecordAccountStatusChangedAsync(
             actorId, userId, AccountStatus.SUSPENDED, result.Status, null, result.ReactivatedAt, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task RequireReviewerAsync(Guid actorId, CancellationToken cancellationToken)
+    {
+        var actor = await guard.ResolveAsync(actorId, cancellationToken);
+        if (!actor.CanReview)
+        {
+            throw new ForbiddenException("Solo un ADMIN o un líder puede consultar usuarios.");
+        }
     }
 }

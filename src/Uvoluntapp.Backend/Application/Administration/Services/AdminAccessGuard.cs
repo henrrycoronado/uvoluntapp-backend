@@ -5,17 +5,16 @@ using Uvoluntapp.Backend.Domain.Accounts;
 
 namespace Uvoluntapp.Backend.Application.Administration.Services;
 
-/// <summary>Exige que el actor sea ADMIN global activo. Es el único punto de autorización de administración.</summary>
+/// <summary>Resuelve los permisos del actor. Es el único punto de autorización de administración.</summary>
 public sealed class AdminAccessGuard(
     IAccountDirectory accounts,
     IRoleAssignmentStore roles,
     ContextAuthorizationService authorization,
     TimeProvider clock)
 {
-    public async Task<IReadOnlyList<RoleAssignment>> RequireGlobalAdminAsync(
-        Guid actorId,
-        CancellationToken cancellationToken = default)
+    public async Task<ActorAccess> ResolveAsync(Guid actorId, CancellationToken cancellationToken = default)
     {
+        var now = clock.GetUtcNow().UtcDateTime;
         var status = await accounts.FindStatusAsync(actorId, cancellationToken);
         var assignments = await roles.ListForUserAsync(actorId, cancellationToken);
         var decision = authorization.Authorize(new AuthorizationRequest(
@@ -27,10 +26,23 @@ public sealed class AdminAccessGuard(
             ResourceId: null,
             ResourceProgramId: null,
             ResourceStateAllowsOperation: true,
-            AtUtc: clock.GetUtcNow().UtcDateTime));
+            AtUtc: now));
 
-        return decision == AuthorizationDecision.ALLOWED
-            ? assignments
+        return new ActorAccess(
+            actorId,
+            status == AccountStatus.ACTIVE,
+            decision == AuthorizationDecision.ALLOWED,
+            assignments,
+            now);
+    }
+
+    public async Task<IReadOnlyList<RoleAssignment>> RequireGlobalAdminAsync(
+        Guid actorId,
+        CancellationToken cancellationToken = default)
+    {
+        var access = await ResolveAsync(actorId, cancellationToken);
+        return access.IsGlobalAdmin
+            ? access.Assignments
             : throw new ForbiddenException("Se requiere un ADMIN global activo.");
     }
 }

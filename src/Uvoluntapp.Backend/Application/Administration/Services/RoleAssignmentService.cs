@@ -1,4 +1,3 @@
-using Uvoluntapp.Backend.Application.Accounts;
 using Uvoluntapp.Backend.Application.Administration.Contracts;
 using Uvoluntapp.Backend.Application.Administration.Ports;
 using Uvoluntapp.Backend.Application.Audit;
@@ -7,13 +6,17 @@ using Uvoluntapp.Backend.Domain.Accounts;
 
 namespace Uvoluntapp.Backend.Application.Administration.Services;
 
+/// <summary>
+/// Asignación de roles por contexto (SCRUM-57, SCRUM-58).
+/// ADMIN: asigna y revoca cualquier rol salvo crear ADMIN (eso exige doble aprobación).
+/// PROGRAM_LEADER: asigna, revoca y consulta líderes operativos solo en los programas que lidera.
+/// </summary>
 public sealed class RoleAssignmentService(
     AdminAccessGuard guard,
     IRoleAssignmentStore roles,
     IAccountDirectory accounts,
     AuditRecorder audit,
-    IUnitOfWork unitOfWork,
-    TimeProvider clock)
+    IUnitOfWork unitOfWork)
 {
     public async Task<PaginatedItems<RoleAssignmentResponse>> ListAsync(
         Guid actorId,
@@ -25,10 +28,19 @@ public sealed class RoleAssignmentService(
         int pageSize,
         CancellationToken cancellationToken = default)
     {
-        await guard.RequireGlobalAdminAsync(actorId, cancellationToken);
-        var now = clock.GetUtcNow().UtcDateTime;
+        var actor = await RequireActiveAsync(actorId, cancellationToken);
+        IReadOnlyCollection<Guid>? scopeIds = null;
+        if (!actor.IsGlobalAdmin)
+        {
+            scopeIds = actor.LedProgramIds;
+            if (scopeIds.Count == 0)
+            {
+                throw new ForbiddenException("Solo un ADMIN o un líder de programa con programas asignados puede consultar asignaciones.");
+            }
+        }
+
         var result = await roles.SearchAsync(
-            new RoleAssignmentFilter(userId, role, scope, active, now, page, pageSize),
+            new RoleAssignmentFilter(userId, role, scope, active, actor.AtUtc, page, pageSize, scopeIds),
             cancellationToken);
 
         return new PaginatedItems<RoleAssignmentResponse>(
@@ -41,10 +53,16 @@ public sealed class RoleAssignmentService(
         Guid assignmentId,
         CancellationToken cancellationToken = default)
     {
-        await guard.RequireGlobalAdminAsync(actorId, cancellationToken);
+        var actor = await RequireActiveAsync(actorId, cancellationToken);
         var assignment = await roles.FindAsync(assignmentId, cancellationToken)
             ?? throw new NotFoundException("La asignación no existe.");
-        return RoleAssignmentResponse.From(assignment);
+
+        var visible = actor.IsGlobalAdmin
+            || assignment.UserId == actorId
+            || (assignment.ScopeId is { } programId && actor.LedProgramIds.Contains(programId));
+        return visible
+            ? RoleAssignmentResponse.From(assignment)
+            : throw new ForbiddenException("No puedes consultar esta asignación.");
     }
 
     public async Task<RoleAssignmentResponse> CreateAsync(
@@ -52,7 +70,7 @@ public sealed class RoleAssignmentService(
         CreateRoleAssignmentRequest request,
         CancellationToken cancellationToken = default)
     {
-        await guard.RequireGlobalAdminAsync(actorId, cancellationToken);
+        var actor = await RequireActiveAsync(actorId, cancellationToken);
 
         var userId = Parse.ParseGuid(request.UserId, nameof(request.UserId));
         var role = Parse.ParseEnum<AssignedRole>(request.Role, nameof(request.Role));
@@ -67,6 +85,16 @@ public sealed class RoleAssignmentService(
                 "Un nuevo ADMIN requiere una solicitud de promoción con doble aprobación.");
         }
 
+        if (!actor.IsGlobalAdmin && !LeaderAssignmentPolicy.CanAssign(actor.Assignments, role, scope, scopeId, actor.AtUtc))
+        {
+            throw new ForbiddenException("Solo puedes asignar líderes operativos en los programas que lideras.");
+        }
+
+        if (userId == actorId && !actor.IsGlobalAdmin)
+        {
+            throw new DomainRuleViolationException("No puedes asignarte roles a ti mismo.");
+        }
+
         var status = await accounts.FindStatusAsync(userId, cancellationToken)
             ?? throw new NotFoundException("La cuenta no existe.");
         if (status != AccountStatus.ACTIVE)
@@ -74,9 +102,8 @@ public sealed class RoleAssignmentService(
             throw new DomainRuleViolationException("Solo se asignan roles a cuentas ACTIVE.");
         }
 
-        var now = clock.GetUtcNow().UtcDateTime;
         var existing = await roles.ListForUserAsync(userId, cancellationToken);
-        if (existing.Any(a => a.IsActiveAt(now) && a.Role == role && a.Scope == scope && a.ScopeId == scopeId))
+        if (existing.Any(a => a.IsActiveAt(actor.AtUtc) && a.Role == role && a.Scope == scope && a.ScopeId == scopeId))
         {
             throw new ConflictException("La persona ya tiene esa asignación vigente.");
         }
@@ -91,7 +118,7 @@ public sealed class RoleAssignmentService(
             request.ValidUntil);
 
         await roles.AddAsync(assignment, cancellationToken);
-        await audit.RecordRoleAssignedAsync(actorId, assignment, now, cancellationToken);
+        await audit.RecordRoleAssignedAsync(actorId, assignment, actor.AtUtc, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return RoleAssignmentResponse.From(assignment);
     }
@@ -101,25 +128,35 @@ public sealed class RoleAssignmentService(
         Guid assignmentId,
         CancellationToken cancellationToken = default)
     {
-        await guard.RequireGlobalAdminAsync(actorId, cancellationToken);
+        var actor = await RequireActiveAsync(actorId, cancellationToken);
         var assignment = await roles.FindAsync(assignmentId, cancellationToken)
             ?? throw new NotFoundException("La asignación no existe.");
-        var now = clock.GetUtcNow().UtcDateTime;
+
+        if (!actor.IsGlobalAdmin && !LeaderAssignmentPolicy.CanRevoke(actor.Assignments, assignment, actor.AtUtc))
+        {
+            throw new ForbiddenException("Solo puedes revocar líderes operativos de los programas que lideras.");
+        }
 
         if (assignment.RevokedAt is not null)
         {
             throw new ConflictException("La asignación ya está revocada.");
         }
 
-        if (assignment.Role == AssignedRole.ADMIN && assignment.IsActiveAt(now))
+        if (assignment.Role == AssignedRole.ADMIN && assignment.IsActiveAt(actor.AtUtc))
         {
-            var activeAdmins = await roles.CountActiveAdminAssignmentsAsync(now, cancellationToken);
+            var activeAdmins = await roles.CountActiveAdminAssignmentsAsync(actor.AtUtc, cancellationToken);
             AdminGrantPolicy.EnsureCanRemoveAdmin(activeAdmins);
         }
 
-        assignment.Revoke(now);
-        await audit.RecordRoleRevokedAsync(actorId, assignment, now, cancellationToken);
+        assignment.Revoke(actor.AtUtc);
+        await audit.RecordRoleRevokedAsync(actorId, assignment, actor.AtUtc, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return RoleAssignmentResponse.From(assignment);
+    }
+
+    private async Task<ActorAccess> RequireActiveAsync(Guid actorId, CancellationToken cancellationToken)
+    {
+        var actor = await guard.ResolveAsync(actorId, cancellationToken);
+        return actor.IsActive ? actor : throw new ForbiddenException("Tu cuenta no está activa.");
     }
 }
