@@ -67,6 +67,7 @@ public static class DependencyInjectionExtensions
         // Puertos de persistencia (un store por agregado).
         services.AddScoped<IRegistration, Registration>();
         services.AddScoped<IAccountSessions, AccountSessions>();
+        services.AddScoped<ISessionIssuer, SessionIssuer>();
         services.AddScoped<IRoleAssignmentStore, RoleAssignmentStore>();
         services.AddScoped<IAdminGrantStore, AdminGrantStore>();
         services.AddScoped<IAccountDirectory, AccountDirectory>();
