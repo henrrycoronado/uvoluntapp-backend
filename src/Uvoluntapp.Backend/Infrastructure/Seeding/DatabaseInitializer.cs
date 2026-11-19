@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Uvoluntapp.Backend.Domain.Accounts;
+using Uvoluntapp.Backend.Domain.Programs;
 using Uvoluntapp.Backend.Infrastructure.Identity;
 using Uvoluntapp.Backend.Infrastructure.Persistence;
 
@@ -44,9 +45,34 @@ public sealed class DatabaseInitializer(
 
             await EnsureTestAdminAsync(scope.ServiceProvider, email, password, $"Admin{index}", cancellationToken);
         }
+
+        await EnsureDemoProgramsAsync(db, cancellationToken);
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    /// <summary>Programas de demostración para probar asignaciones; la gestión real llega con el módulo 2.</summary>
+    private static async Task EnsureDemoProgramsAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        if (await db.Programs.AnyAsync(cancellationToken))
+        {
+            return;
+        }
+
+        var community = new VolunteerProgram
+        {
+            Name = "Voluntariado comunitario",
+            Description = "Apoyo a comunidades y barrios de Santa Cruz.",
+        };
+        community.Activate();
+        db.Programs.Add(community);
+        db.Programs.Add(new VolunteerProgram
+        {
+            Name = "Tutorías académicas",
+            Description = "Acompañamiento a estudiantes de primeros semestres.",
+        });
+        await db.SaveChangesAsync(cancellationToken);
+    }
 
     private static async Task EnsureTestAdminAsync(
         IServiceProvider provider,

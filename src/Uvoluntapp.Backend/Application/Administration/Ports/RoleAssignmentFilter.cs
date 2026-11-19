@@ -1,8 +1,8 @@
-using Uvoluntapp.Backend.Application.Common;
 using Uvoluntapp.Backend.Domain.Accounts;
 
 namespace Uvoluntapp.Backend.Application.Administration.Ports;
 
+/// <summary>Filtro de asignaciones. <see cref="ScopeIds"/> limita a ciertos programas o actividades (vista del líder).</summary>
 public sealed record RoleAssignmentFilter(
     Guid? UserId,
     AssignedRole? Role,
@@ -10,4 +10,5 @@ public sealed record RoleAssignmentFilter(
     bool? Active,
     DateTime AtUtc,
     int Page,
-    int PageSize);
+    int PageSize,
+    IReadOnlyCollection<Guid>? ScopeIds = null);

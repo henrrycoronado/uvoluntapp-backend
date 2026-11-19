@@ -33,6 +33,12 @@ public sealed class RoleAssignmentStore(AppDbContext db) : IRoleAssignmentStore
             query = query.Where(r => r.Scope == scope);
         }
 
+        if (filter.ScopeIds is { } scopeIds)
+        {
+            var ids = scopeIds.ToList();
+            query = query.Where(r => r.ScopeId != null && ids.Contains(r.ScopeId.Value));
+        }
+
         var at = filter.AtUtc;
         if (filter.Active is { } active)
         {
