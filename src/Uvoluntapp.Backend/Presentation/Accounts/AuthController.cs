@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Uvoluntapp.Backend.Application.Accounts;
 using Uvoluntapp.Backend.Application.Accounts.Contracts;
+using Uvoluntapp.Backend.Application.Accounts.Google;
+using Uvoluntapp.Backend.Application.Accounts.Recovery;
 
 namespace Uvoluntapp.Backend.Presentation.Accounts;
 
@@ -11,7 +13,13 @@ namespace Uvoluntapp.Backend.Presentation.Accounts;
 [Route("api/v1/auth")]
 [TypeFilter<AccountExceptionFilter>]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public sealed class AuthController(IRegistration registration, IAccountSessions sessions, RegistrationProof proof) : ControllerBase
+public sealed class AuthController(
+    IRegistration registration,
+    IAccountSessions sessions,
+    RegistrationProof proof,
+    GoogleAuthService google,
+    RecoveryService recovery,
+    IConfiguration configuration) : ControllerBase
 {
     private const string OtpMessage = "Si corresponde, recibirás un código en tu correo.";
 
@@ -77,6 +85,25 @@ public sealed class AuthController(IRegistration registration, IAccountSessions 
         await sessions.LogoutAsync(userId, sessionId, request.RefreshToken, cancellationToken);
         return NoContent();
     }
+
+    [HttpPost("google")]
+    [AllowAnonymous]
+    public Task<GoogleAuthResponse> Google(GoogleAuthRequest request, CancellationToken cancellationToken)
+    {
+        var audiences = (configuration["GOOGLE_CLIENT_IDS"] ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return google.AuthenticateAsync(request, audiences, cancellationToken);
+    }
+
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    public Task<MessageResponse> ForgotPassword(ForgotPasswordRequest request, CancellationToken cancellationToken) =>
+        recovery.RequestAsync(request, ClientIp(), cancellationToken);
+
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    public Task<MessageResponse> ResetPassword(ResetPasswordRequest request, CancellationToken cancellationToken) =>
+        recovery.ResetAsync(request, cancellationToken);
 
     private string ClientIp() => HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 }

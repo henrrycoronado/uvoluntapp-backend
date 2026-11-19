@@ -241,6 +241,53 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "password_recovery_tokens",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    user_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    token_hash = table.Column<string>(type: "text", nullable: false),
+                    expires_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    used_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_password_recovery_tokens", x => x.id);
+                    table.ForeignKey(
+                        name: "FK_password_recovery_tokens_users_user_id",
+                        column: x => x.user_id,
+                        principalTable: "users",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "pending_email_verifications",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    user_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    email = table.Column<string>(type: "text", nullable: false),
+                    purpose = table.Column<string>(type: "text", nullable: false),
+                    code_hash = table.Column<string>(type: "text", nullable: false),
+                    expires_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    attempts = table.Column<int>(type: "integer", nullable: false),
+                    is_used = table.Column<bool>(type: "boolean", nullable: false),
+                    requested_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_pending_email_verifications", x => x.id);
+                    table.CheckConstraint("ck_pending_email_verifications_purpose", "purpose IN ('EMAIL_CHANGE', 'INSTITUTIONAL_EMAIL')");
+                    table.ForeignKey(
+                        name: "FK_pending_email_verifications_users_user_id",
+                        column: x => x.user_id,
+                        principalTable: "users",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "profiles",
                 columns: table => new
                 {
@@ -525,6 +572,23 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                 column: "user_id");
 
             migrationBuilder.CreateIndex(
+                name: "IX_password_recovery_tokens_token_hash",
+                table: "password_recovery_tokens",
+                column: "token_hash",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_password_recovery_tokens_user_id",
+                table: "password_recovery_tokens",
+                column: "user_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_pending_email_verifications_user_id_purpose",
+                table: "pending_email_verifications",
+                columns: new[] { "user_id", "purpose" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_profiles_career_id",
                 table: "profiles",
                 column: "career_id");
@@ -595,6 +659,12 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
 
             migrationBuilder.DropTable(
                 name: "auth_sessions");
+
+            migrationBuilder.DropTable(
+                name: "password_recovery_tokens");
+
+            migrationBuilder.DropTable(
+                name: "pending_email_verifications");
 
             migrationBuilder.DropTable(
                 name: "profiles");

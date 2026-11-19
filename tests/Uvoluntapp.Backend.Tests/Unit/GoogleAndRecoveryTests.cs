@@ -168,7 +168,9 @@ public sealed class GoogleAndRecoveryTests
 
     private sealed class FakeRecoveryTokenGenerator : IRecoveryTokenGenerator
     {
-        public (string RawToken, string TokenHash) Create() => ("raw", "hash");
+        public (string RawToken, string TokenHash) Create() => ("raw", Hash("raw"));
+
+        public string Hash(string rawToken) => "hash-" + rawToken;
     }
 
     private sealed class FakeRateLimiter : IAccountRateLimiter

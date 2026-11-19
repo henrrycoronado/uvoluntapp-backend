@@ -6,7 +6,7 @@ using Uvoluntapp.Backend.Application.Accounts;
 
 namespace Uvoluntapp.Backend.Infrastructure.Accounts;
 
-public sealed class AccountRateLimiter(IConnectionMultiplexer redis, IConfiguration config)
+public sealed class AccountRateLimiter(IConnectionMultiplexer redis, IConfiguration config) : Uvoluntapp.Backend.Application.Accounts.Recovery.IAccountRateLimiter
 {
     // Both dimensions share one atomic sliding window decision and the Redis server clock.
     private const string Script = """
@@ -23,8 +23,16 @@ public sealed class AccountRateLimiter(IConnectionMultiplexer redis, IConfigurat
         return 1
         """;
 
+    public Task CheckAsync(string operation, string accountKey, string ipAddress, CancellationToken cancellationToken) =>
+        CheckAsync(operation, accountKey, ipAddress);
+
     public async Task CheckAsync(string operation, string normalizedEmail, string ip)
     {
+        if (!config.GetValue("AUTH_RATE_LIMIT_ENABLED", true))
+        {
+            return;
+        }
+
         if (IPAddress.TryParse(ip, out var address))
         {
             ip = address.IsIPv4MappedToIPv6 ? address.MapToIPv4().ToString() : address.ToString();

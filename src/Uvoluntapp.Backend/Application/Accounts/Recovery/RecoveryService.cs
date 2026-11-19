@@ -44,7 +44,7 @@ public sealed class RecoveryService(
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var hash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(request.Token)));
+        var hash = tokens.Hash(request.Token);
         var token = await accounts.FindTokenAsync(hash, cancellationToken);
         if (token is null || !token.TryConsume(clock.GetUtcNow().UtcDateTime))
         {

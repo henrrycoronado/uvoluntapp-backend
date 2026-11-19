@@ -32,11 +32,6 @@ public sealed class RoleAssignment : Entity
             throw new ArgumentException("ADMIN requiere ámbito GLOBAL.", nameof(scope));
         }
 
-        if (role != AssignedRole.ADMIN && scope == RoleScope.GLOBAL)
-        {
-            throw new ArgumentException("Los líderes requieren un ámbito contextual.", nameof(scope));
-        }
-
         if (scope == RoleScope.GLOBAL)
         {
             if (scopeId.HasValue)
@@ -86,9 +81,10 @@ public sealed class RoleAssignment : Entity
 
     public bool Covers(RoleScope resourceScope, Guid? resourceId, Guid? resourceProgramId)
     {
+        // Un líder con ámbito GLOBAL no gestiona nada hasta que se le asigne un programa o actividad.
         if (Scope == RoleScope.GLOBAL)
         {
-            return true;
+            return Role == AssignedRole.ADMIN;
         }
 
         if (Scope == RoleScope.ACTIVITY)
