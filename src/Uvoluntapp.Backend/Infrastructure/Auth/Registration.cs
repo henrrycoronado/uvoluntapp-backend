@@ -6,7 +6,6 @@ using Uvoluntapp.Backend.Application.Exceptions.Accounts;
 using Uvoluntapp.Backend.Application.Interfaces.Accounts;
 using Uvoluntapp.Backend.Application.Services.Accounts;
 using Uvoluntapp.Backend.Domain.Entities.Accounts;
-using Uvoluntapp.Backend.Domain.Entities.Common;
 using Uvoluntapp.Backend.Domain.Utils.Enums;
 using Uvoluntapp.Backend.Infrastructure.Identity;
 using Uvoluntapp.Backend.Infrastructure.Persistence;

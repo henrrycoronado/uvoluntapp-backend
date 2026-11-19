@@ -18,7 +18,6 @@ using Uvoluntapp.Backend.Application.DTOs.Accounts;
 using Uvoluntapp.Backend.Application.Exceptions.Accounts;
 using Uvoluntapp.Backend.Domain.Utils.Enums;
 using Uvoluntapp.Backend.Infrastructure.Auth;
-using Uvoluntapp.Backend.Infrastructure.Identity;
 namespace Uvoluntapp.Backend.Tests.Integration.Accounts;
 
 public sealed class AuthFlowTests(AuthFixture fixture) : IClassFixture<AuthFixture>

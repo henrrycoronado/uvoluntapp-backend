@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
 using Uvoluntapp.Backend.Application.DTOs.Accounts;
 using Uvoluntapp.Backend.Application.Exceptions.Accounts;
 using Uvoluntapp.Backend.Application.Interfaces.Accounts;

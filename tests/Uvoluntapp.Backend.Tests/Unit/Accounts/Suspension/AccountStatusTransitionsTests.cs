@@ -1,5 +1,3 @@
-using System;
-
 using Xunit;
 
 using Uvoluntapp.Backend.Domain.Policies;

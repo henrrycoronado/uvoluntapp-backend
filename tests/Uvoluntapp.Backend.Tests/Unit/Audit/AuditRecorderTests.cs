@@ -3,11 +3,8 @@ using System.Threading.Tasks;
 using System;
 
 using Xunit;
-
-using Uvoluntapp.Backend.Application.Services.Administration;
 using Uvoluntapp.Backend.Application.Services.Audit;
 using Uvoluntapp.Backend.Domain.Entities.Accounts;
-using Uvoluntapp.Backend.Domain.Entities.Activities;
 using Uvoluntapp.Backend.Domain.Utils.Constants;
 using Uvoluntapp.Backend.Domain.Utils.Enums;
 namespace Uvoluntapp.Backend.Tests.Unit.Audit;

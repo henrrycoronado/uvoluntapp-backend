@@ -7,7 +7,6 @@ using Xunit;
 using Uvoluntapp.Backend.Application.DTOs.Audit;
 using Uvoluntapp.Backend.Application.Services.Audit;
 using Uvoluntapp.Backend.Domain.Entities.Accounts;
-using Uvoluntapp.Backend.Domain.Entities.Activities;
 using Uvoluntapp.Backend.Domain.Entities.Audit;
 using Uvoluntapp.Backend.Domain.Utils.Constants;
 using Uvoluntapp.Backend.Domain.Utils.Enums;

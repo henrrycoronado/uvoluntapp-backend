@@ -7,7 +7,6 @@ using Xunit;
 
 using Uvoluntapp.Backend.Domain.Entities.Accounts;
 using Uvoluntapp.Backend.Domain.Entities.Activities;
-using Uvoluntapp.Backend.Domain.Entities.Common;
 using Uvoluntapp.Backend.Domain.Entities.Programs;
 using Uvoluntapp.Backend.Domain.Utils.Enums;
 using Uvoluntapp.Backend.Infrastructure.Identity;
