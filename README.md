@@ -13,13 +13,19 @@ API REST para la gestión de voluntariado universitario. Digitaliza control de a
 
 ## Estructura del proyecto
 ```
-U_VoluntApp_Core/
-├── Program.cs             ← Punto de entrada
-├── Src/                   ← Código fuente principal
-│   ├── Domain/            ← Entidades y lógica central
-│   ├── Application/       ← DTOs e Interfaces de servicio
-│   ├── Infrastructure/    ← Persistencia y servicios externos
-│   └── Presentation/      ← Controladores API
+uvoluntapp-backend/
+├── Uvoluntapp.Backend.slnx
+├── src/Uvoluntapp.Backend/
+│   ├── Uvoluntapp.Backend.csproj
+│   ├── Program.cs         ← Punto de entrada
+│   ├── Domain/            ← Cuentas, programas y actividades
+│   ├── Infrastructure/    ← Identity y persistencia
+│   └── Presentation/      ← Configuración de servicios de la API
+├── tests/Uvoluntapp.Backend.Tests/
+│   ├── Uvoluntapp.Backend.Tests.csproj
+│   ├── Unit/
+│   └── Integration/
+└── contracts/openapi.yaml
 ```
 
 ## Requisitos previos
@@ -33,7 +39,7 @@ U_VoluntApp_Core/
 ### 1. Clonar el repositorio
 ```bash
 git clone [url-del-repo]
-cd U-VoluntApp_Core
+cd uvoluntapp-backend
 dotnet tool restore
 dotnet husky install
 ```
@@ -54,7 +60,7 @@ DB_CONNECTION_STRING=Host=postgres_db;Port=5432;Database=uvoluntapp;Username=uvo
 
 # JWT
 JWT_SECRET=dev_secret_local_minimo_32_caracteres
-JWT_ISSUER=U_VoluntApp_Core.Src
+JWT_ISSUER=Uvoluntapp.Backend
 JWT_AUDIENCE=UVoluntapp.Client
 JWT_EXPIRY_MINUTES=60
 
@@ -111,7 +117,7 @@ docker compose up -d --build
 ```
 
 ### 6. Ejecutar fuera de Docker, si lo necesitas
-Si quieres correr la API con `dotnet run`, cambia `DB_CONNECTION_STRING` a `Host=localhost;...` en tu `.env` local o usa un perfil distinto para desarrollo sin contenedores.
+Desde la raíz, compila con `dotnet build Uvoluntapp.Backend.slnx` y ejecuta las pruebas con `dotnet test`. Para arrancar la API, exporta `DB_CONNECTION_STRING` con el host de PostgreSQL accesible desde tu máquina y ejecuta `dotnet run --project src/Uvoluntapp.Backend`.
 
 ### 7. GitHub Actions
 
@@ -121,7 +127,7 @@ Si quieres correr la API con `dotnet run`, cambia `DB_CONNECTION_STRING` a `Host
 
 ### Generar migraciones (EF Core)
 
-Instrucciones para crear y aplicar migraciones usando Entity Framework Core (versión 9). El `DbContext` principal en este proyecto se llama `AppDbContext` (archivo: [Src/Infrastructure/Persistence/AppDbContext.cs](Src/Infrastructure/Persistence/AppDbContext.cs#L1)).
+El proyecto de arranque contiene el contexto y las migraciones de Entity Framework Core 9. [AppDbContext.cs](src/Uvoluntapp.Backend/Infrastructure/Persistence/AppDbContext.cs)
 
 - Asegúrate de tener instalada la herramienta `dotnet-ef`. Puedes instalarla globalmente si no la tienes:
 
@@ -131,26 +137,20 @@ dotnet tool install --global dotnet-ef --version 9.*
 dotnet tool restore
 ```
 
-- Comando típico para crear una nueva migración desde la raíz del repositorio (ejemplo `InitialCreate`):
+- Para crear una nueva migración desde la raíz del repositorio:
 
 ```bash
-dotnet ef migrations add InitialCreate --context AppDbContext --output-dir Src/Infrastructure/Persistence/Migrations
-```
-
-- Si tu proyecto de arranque (`Program.cs`) está en un proyecto diferente al que contiene el `DbContext`, usa `--project` y `--startup-project`. Ejemplo:
-
-```bash
-dotnet ef migrations add InitialCreate --project Src/Infrastructure --startup-project . --context AppDbContext --output-dir Persistence/Migrations
+dotnet ef migrations add NombreDeLaMigracion --project src/Uvoluntapp.Backend --context AppDbContext --output-dir Infrastructure/Persistence/Migrations
 ```
 
 - Para aplicar las migraciones a la base de datos (desde la raíz):
 
 ```bash
-dotnet ef database update --context AppDbContext
+dotnet ef database update --project src/Uvoluntapp.Backend --context AppDbContext
 ```
 
 - Requisitos y notas:
-	- El paquete `Microsoft.EntityFrameworkCore.Design` ya está referenciado en el proyecto (ver [U-VoluntApp_Core.csproj](U-VoluntApp_Core.csproj#L1)).
+	- El proyecto incluye el paquete `Microsoft.EntityFrameworkCore.Design`. [Uvoluntapp.Backend.csproj](src/Uvoluntapp.Backend/Uvoluntapp.Backend.csproj)
 	- Si recibes errores relacionados con el proveedor de base de datos, verifica la cadena de conexión en las variables de entorno o `appsettings` y que `Npgsql.EntityFrameworkCore.PostgreSQL` esté instalado.
 
 ---

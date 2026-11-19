@@ -8,8 +8,7 @@
 **/bin/
 **/obj/
 **/TestResults/
-tests/bin/
-tests/obj/
+tests/
 
 .env
 .env.*

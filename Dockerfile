@@ -1,11 +1,11 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-COPY ["U-VoluntApp_Core.csproj", "./"]
-RUN dotnet restore "U-VoluntApp_Core.csproj"
+COPY ["src/Uvoluntapp.Backend/Uvoluntapp.Backend.csproj", "src/Uvoluntapp.Backend/"]
+RUN dotnet restore "src/Uvoluntapp.Backend/Uvoluntapp.Backend.csproj"
 
 COPY . .
-RUN dotnet publish "U-VoluntApp_Core.csproj" -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "src/Uvoluntapp.Backend/Uvoluntapp.Backend.csproj" -c Release --no-restore -o /app/publish /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
@@ -20,4 +20,4 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 
 EXPOSE 8080
 
-ENTRYPOINT ["dotnet", "U-VoluntApp_Core.dll"]
+ENTRYPOINT ["dotnet", "Uvoluntapp.Backend.dll"]
