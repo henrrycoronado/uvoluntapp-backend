@@ -162,6 +162,8 @@ paths:
         Una cuenta creada con Google sin contraseña (correo confirmado, ACTIVE o
         PENDING_APPROVAL) recibe un OTP por correo y un 409
         `urn:uvoluntapp:password-setup-required`; el cliente sigue en /auth/set-password.
+        Con contraseña correcta y cuenta no activa responde 422 `urn:uvoluntapp:inactive-account`
+        con `accountStatus` y, si fue rechazada, `rejectionReason` y `reapplyAvailableAt`.
         SCRUM-56.
       operationId: login
       security: []
@@ -188,6 +190,41 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /auth/reapply:
+    post:
+      tags: [Auth]
+      summary: Enviar una nueva solicitud tras un rechazo
+      description: |
+        La contraseña prueba la titularidad. Solo una cuenta REJECTED, un día después del rechazo;
+        antes responde 422 `urn:uvoluntapp:reapply-too-early` con `reapplyAvailableAt`.
+        La solicitud anterior se conserva como historial y la cuenta vuelve a PENDING_APPROVAL.
+        SCRUM-108.
+      operationId: reapply
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReapplyRequest'
+      responses:
+        '200':
+          description: Solicitud enviada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
         '429':
@@ -2303,6 +2340,26 @@ components:
         - isNewAccount
         - email
         - requiresApprovalData
+
+    ReapplyRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phone:
+          type: string
+          maxLength: 30
+        relationWithPastoral:
+          type: string
+      required: [email, password, firstName, lastName, phone, relationWithPastoral]
 
     SetPasswordRequest:
       type: object

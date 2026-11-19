@@ -7,6 +7,8 @@ using Uvoluntapp.Backend.Application.Interfaces.Accounts;
 using Uvoluntapp.Backend.Application.Interfaces.Common;
 using Uvoluntapp.Backend.Application.Services.Accounts;
 using Uvoluntapp.Backend.Domain.Entities.Accounts;
+using Uvoluntapp.Backend.Domain.Entities.Audit;
+using Uvoluntapp.Backend.Domain.Utils.Constants;
 using Uvoluntapp.Backend.Domain.Utils.Enums;
 using Uvoluntapp.Backend.Infrastructure.Identity;
 using Uvoluntapp.Backend.Infrastructure.Persistence;
@@ -161,6 +163,57 @@ public sealed class Registration(
             Phone = request.Phone,
             Relationship = request.RelationWithPastoral
         });
+        await db.SaveChangesAsync(cancellationToken);
+        await tx.CommitAsync(cancellationToken);
+    }
+
+    public async Task ReapplyAsync(ReapplyRequest request, string ip, CancellationToken cancellationToken)
+    {
+        var normalized = users.NormalizeEmail(request.Email.Trim())!;
+        await limits.CheckAsync("login", normalized, ip);
+        await using var tx = await LockAsync(normalized, cancellationToken);
+        var user = await FindUserAsync(normalized, cancellationToken);
+        if (user is null || user.DeletedAt.HasValue || !await users.CheckPasswordAsync(user, request.Password))
+        {
+            if (user is not null)
+            {
+                await users.AccessFailedAsync(user);
+                await tx.CommitAsync(cancellationToken);
+            }
+
+            throw new AccountException(AccountError.InvalidSession);
+        }
+
+        var last = await db.AccountApprovalRequests
+            .Where(r => r.UserId == user.Id)
+            .OrderByDescending(r => r.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (user.Status != AccountStatus.REJECTED || last is null)
+        {
+            throw new AccountException(AccountError.RegistrationConflict);
+        }
+
+        var now = clock.GetUtcNow().UtcDateTime;
+        if (!last.CanRequestAgainAt(now))
+        {
+            throw new AccountException(
+                AccountError.ReapplyTooEarly,
+                new Dictionary<string, object?> { ["reapplyAvailableAt"] = last.ReviewedAt?.AddDays(1) });
+        }
+
+        // La solicitud anterior queda como historial; la nueva lleva los datos actualizados.
+        var next = last.CreateResubmission();
+        next.FirstName = request.FirstName.Trim();
+        next.LastName = request.LastName.Trim();
+        next.Phone = request.Phone.Trim();
+        next.Relationship = request.RelationWithPastoral.Trim();
+        db.AccountApprovalRequests.Add(next);
+        var profile = await ProfileAsync(user.Id, cancellationToken);
+        profile.FirstName = next.FirstName;
+        profile.LastName = next.LastName;
+        profile.Phone = next.Phone;
+        user.Status = AccountStatus.PENDING_APPROVAL;
+        db.AuditEvents.Add(AuditEvent.Create(user.Id, AuditActions.AccountReapplied, AuditResourceTypes.AccountApprovalRequest, next.Id, null, now));
         await db.SaveChangesAsync(cancellationToken);
         await tx.CommitAsync(cancellationToken);
     }

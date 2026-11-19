@@ -8,5 +8,6 @@ public enum AccountError
     RegistrationConflict,
     InactiveAccount,
     TooManyAttempts,
-    PasswordSetupRequired
+    PasswordSetupRequired,
+    ReapplyTooEarly
 }

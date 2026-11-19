@@ -53,7 +53,8 @@ public sealed class AccountSessions(
 
         if (user.Status != AccountStatus.ACTIVE || !user.EmailConfirmed)
         {
-            throw new AccountException(AccountError.InactiveAccount);
+            // La contraseña es correcta: solo la dueña de la cuenta ve su estado y cuándo puede volver a postular.
+            throw new AccountException(AccountError.InactiveAccount, await InactiveDetailsAsync(user, cancellationToken));
         }
 
         EnsureUpdated(await users.ResetAccessFailedCountAsync(user));
@@ -148,6 +149,22 @@ public sealed class AccountSessions(
         {
             throw new AccountException(AccountError.RegistrationConflict);
         }
+    }
+
+    private async Task<Dictionary<string, object?>> InactiveDetailsAsync(AppUser user, CancellationToken cancellationToken)
+    {
+        var details = new Dictionary<string, object?> { ["accountStatus"] = user.Status.ToString() };
+        if (user.Status == AccountStatus.REJECTED)
+        {
+            var last = await db.AccountApprovalRequests
+                .Where(r => r.UserId == user.Id)
+                .OrderByDescending(r => r.CreatedAt)
+                .FirstOrDefaultAsync(cancellationToken);
+            details["rejectionReason"] = last?.RejectionReason;
+            details["reapplyAvailableAt"] = last?.ReviewedAt?.AddDays(1);
+        }
+
+        return details;
     }
 
     private async Task StartPasswordSetupAsync(AppUser user, string normalizedEmail, CancellationToken cancellationToken)
