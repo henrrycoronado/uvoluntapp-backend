@@ -14,6 +14,9 @@ public interface IGoogleAccountStore
         bool institutionalEmailVerified,
         CancellationToken cancellationToken);
 
+    // Indica si la cuenta ya envió su solicitud de aprobación.
+    Task<bool> HasApprovalRequestAsync(Guid userId, CancellationToken cancellationToken);
+
     Task LinkAsync(
         Guid userId,
         GoogleIdentity identity,

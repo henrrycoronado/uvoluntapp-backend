@@ -56,7 +56,9 @@ public sealed class GoogleAccountStore(AppDbContext db) : IGoogleAccountStore
             SecurityStamp = Guid.NewGuid().ToString(),
         };
         await db.Users.AddAsync(user, cancellationToken);
-        await db.Profiles.AddAsync(new Profile { UserId = user.Id, FirstName = string.Empty, LastName = string.Empty }, cancellationToken);
+        await db.Profiles.AddAsync(
+            new Profile { UserId = user.Id, FirstName = identity.GivenName ?? string.Empty, LastName = identity.FamilyName ?? string.Empty },
+            cancellationToken);
         var login = new IdentityUserLogin<Guid>
         {
             LoginProvider = Provider,
@@ -68,6 +70,9 @@ public sealed class GoogleAccountStore(AppDbContext db) : IGoogleAccountStore
         await db.SaveChangesAsync(cancellationToken);
         return ToRecord(user);
     }
+
+    public Task<bool> HasApprovalRequestAsync(Guid userId, CancellationToken cancellationToken) =>
+        db.AccountApprovalRequests.AnyAsync(r => r.UserId == userId, cancellationToken);
 
     public async Task LinkAsync(Guid userId, GoogleIdentity identity, CancellationToken cancellationToken)
     {

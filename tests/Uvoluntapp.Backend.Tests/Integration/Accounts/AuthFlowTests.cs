@@ -245,6 +245,66 @@ public sealed class AuthFlowTests(AuthFixture fixture) : IClassFixture<AuthFixtu
         await AssertProblemAsync(await client.PostAsJsonAsync("verify-otp", new { email = "test@example.org", code = "１２３４５６" }), HttpStatusCode.BadRequest);
     }
 
+    [Fact]
+    public async Task GoogleAccountWithoutPasswordProvesItsMailboxOnceToCreateOne()
+    {
+        using var client = fixture.Client();
+        var email = await GoogleOnlyUserAsync(AccountStatus.ACTIVE);
+        var password = Guid.NewGuid().ToString("N");
+
+        var login = await client.PostAsJsonAsync("login", new { email, password });
+        Assert.Equal(HttpStatusCode.Conflict, login.StatusCode);
+        var problem = await login.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("urn:uvoluntapp:password-setup-required", problem.GetProperty("type").GetString());
+        var code = fixture.Mail.Code(email);
+
+        var wrong = code == "000000" ? "111111" : "000000";
+        await AssertProblemAsync(await client.PostAsJsonAsync("set-password", new { email, code = wrong, password }), HttpStatusCode.UnprocessableEntity);
+        var set = await client.PostAsJsonAsync("set-password", new { email, code, password });
+        set.EnsureSuccessStatusCode();
+        var result = await set.Content.ReadFromJsonAsync<SetPasswordResponse>();
+        Assert.Equal("ACTIVE", result!.AccountStatus);
+        Assert.NotNull(result.Tokens);
+
+        await AssertProblemAsync(await client.PostAsJsonAsync("set-password", new { email, code, password = "otra-clave-123" }), HttpStatusCode.UnprocessableEntity);
+        Assert.True((await client.PostAsJsonAsync("login", new { email, password })).IsSuccessStatusCode);
+    }
+
+    [Fact]
+    public async Task PendingGoogleAccountCreatesItsPasswordWithoutASession()
+    {
+        using var client = fixture.Client();
+        var email = await GoogleOnlyUserAsync(AccountStatus.PENDING_APPROVAL);
+        var password = Guid.NewGuid().ToString("N");
+        await AssertProblemAsync(await client.PostAsJsonAsync("login", new { email, password }), HttpStatusCode.Conflict);
+
+        var set = await client.PostAsJsonAsync("set-password", new { email, code = fixture.Mail.Code(email), password });
+        set.EnsureSuccessStatusCode();
+        var result = await set.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("PENDING_APPROVAL", result.GetProperty("accountStatus").GetString());
+        Assert.False(result.TryGetProperty("tokens", out _));
+        await AssertProblemAsync(await client.PostAsJsonAsync("login", new { email, password }), HttpStatusCode.UnprocessableEntity);
+    }
+
+    private async Task<string> GoogleOnlyUserAsync(AccountStatus status)
+    {
+        var email = $"{Guid.NewGuid():N}@example.org";
+        await using var db = fixture.Context();
+        db.Users.Add(new Uvoluntapp.Backend.Infrastructure.Identity.AppUser
+        {
+            Id = Guid.NewGuid(),
+            UserName = email,
+            NormalizedUserName = email.ToUpperInvariant(),
+            Email = email,
+            NormalizedEmail = email.ToUpperInvariant(),
+            EmailConfirmed = true,
+            Status = status,
+            SecurityStamp = Guid.NewGuid().ToString(),
+        });
+        await db.SaveChangesAsync();
+        return email;
+    }
+
     private static RegisterRequest NewRegistration(string domain) => new()
     {
         Email = $"{Guid.NewGuid():N}@{domain}",

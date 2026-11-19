@@ -156,6 +156,9 @@ paths:
         Devuelve JWT de acceso y refresh token.
         5 intentos por minuto por IP y por correo (Redis).
         Los fallos suman al bloqueo de Identity.
+        Una cuenta creada con Google sin contraseña (correo confirmado, ACTIVE o
+        PENDING_APPROVAL) recibe un OTP por correo y un 409
+        `urn:uvoluntapp:password-setup-required`; el cliente sigue en /auth/set-password.
         SCRUM-56.
       operationId: login
       security: []
@@ -176,6 +179,43 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: La cuenta se creó con Google y aún no tiene contraseña; se envió un OTP
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /auth/set-password:
+    post:
+      tags: [Auth]
+      summary: Crear la primera contraseña de una cuenta creada con Google
+      description: |
+        Verifica el OTP enviado por /auth/login (5 intentos) y crea la contraseña.
+        El código no se puede reutilizar. Solo una cuenta ACTIVE abre sesión;
+        una PENDING_APPROVAL responde sin tokens.
+        SCRUM-104.
+      operationId: setPassword
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetPasswordRequest'
+      responses:
+        '200':
+          description: Contraseña creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetPasswordResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
         '429':
@@ -235,6 +275,9 @@ paths:
         Si el correo pertenece a una cuenta, se vincula solo con ambos verificados.
         Primer ingreso externo → PENDING_APPROVAL.
         Correo con `hd = ucb.edu.bo` se trata como institucional.
+        Una cuenta externa sin solicitud de aprobación recibe `requiresApprovalData`,
+        los nombres de Google y la cookie `RegistrationProof`; el cliente sigue en
+        /auth/complete-registration.
         La API acepta la lista de IDs de cliente configurada.
         SCRUM-104.
       operationId: googleAuth
@@ -2233,9 +2276,54 @@ components:
           type: boolean
         tokens:
           $ref: '#/components/schemas/TokenPair'
+        email:
+          type: string
+          format: email
+        requiresApprovalData:
+          type: boolean
+          description: Si true, el cliente debe llamar a /auth/complete-registration
+        firstName:
+          type: string
+          nullable: true
+          description: Nombre de Google; solo cuando requiresApprovalData es true
+        lastName:
+          type: string
+          nullable: true
+          description: Apellido de Google; solo cuando requiresApprovalData es true
       required:
         - accountStatus
         - isNewAccount
+        - email
+        - requiresApprovalData
+
+    SetPasswordRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        code:
+          type: string
+          pattern: '^[0-9]{6}$'
+        password:
+          type: string
+          format: password
+          minLength: 8
+      required:
+        - email
+        - code
+        - password
+
+    SetPasswordResponse:
+      type: object
+      properties:
+        accountStatus:
+          type: string
+          enum: [ACTIVE, PENDING_APPROVAL]
+        tokens:
+          $ref: '#/components/schemas/TokenResponse'
+      required:
+        - accountStatus
 
     ForgotPasswordRequest:
       type: object

@@ -34,7 +34,9 @@ public sealed class GoogleAuthService(
             claims.Subject,
             claims.Email.Trim(),
             claims.EmailVerified,
-            claims.HostedDomain);
+            claims.HostedDomain,
+            claims.GivenName?.Trim(),
+            claims.FamilyName?.Trim());
         var bySubject = await accounts.FindBySubjectAsync(identity.Subject, cancellationToken);
         var account = bySubject ?? await accounts.FindByEmailAsync(identity.Email, cancellationToken);
         var decision = GoogleAccountLinkingPolicy.Decide(
@@ -60,6 +62,18 @@ public sealed class GoogleAuthService(
         var tokens = account.Status == AccountStatus.ACTIVE && sessions is not null
             ? await sessions.IssueAsync(account.UserId, cancellationToken)
             : null;
-        return new GoogleAuthResponse(account.Status.ToString(), decision.IsNewAccount, tokens);
+
+        // Una cuenta externa verificada completa sus datos antes de llegar a la cola de aprobación.
+        var requiresApprovalData = account.Status == AccountStatus.PENDING_APPROVAL
+            && account.EmailVerified
+            && !await accounts.HasApprovalRequestAsync(account.UserId, cancellationToken);
+        return new GoogleAuthResponse(
+            account.Status.ToString(),
+            decision.IsNewAccount,
+            tokens,
+            account.Email,
+            requiresApprovalData,
+            requiresApprovalData ? identity.GivenName : null,
+            requiresApprovalData ? identity.FamilyName : null);
     }
 }

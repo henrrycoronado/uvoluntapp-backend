@@ -31,7 +31,9 @@ public sealed class GoogleTokenValidator(HttpClient client) : IGoogleTokenValida
             payload.Email,
             string.Equals(payload.EmailVerified, "true", StringComparison.OrdinalIgnoreCase),
             payload.Aud ?? string.Empty,
-            payload.Hd);
+            payload.Hd,
+            payload.GivenName,
+            payload.FamilyName);
     }
 
     private sealed class TokenInfo
@@ -50,5 +52,11 @@ public sealed class GoogleTokenValidator(HttpClient client) : IGoogleTokenValida
 
         [JsonPropertyName("hd")]
         public string? Hd { get; init; }
+
+        [JsonPropertyName("given_name")]
+        public string? GivenName { get; init; }
+
+        [JsonPropertyName("family_name")]
+        public string? FamilyName { get; init; }
     }
 }

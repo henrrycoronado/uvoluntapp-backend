@@ -129,6 +129,29 @@ public sealed class GoogleAndRecoveryTests
         Assert.Equal(0, issuer.Issued);
     }
 
+    [Fact]
+    public async Task NewExternalGoogleAccountAsksForApprovalDataWithGoogleNames()
+    {
+        var response = await AuthenticateAsync(
+            new FakeGoogleAccounts(),
+            new("sub-3", "ana@gmail.com", true, "expected", null, "Ana", "Paz"));
+
+        Assert.True(response.RequiresApprovalData);
+        Assert.Equal("ana@gmail.com", response.Email);
+        Assert.Equal(("Ana", "Paz"), (response.FirstName, response.LastName));
+    }
+
+    [Fact]
+    public async Task InstitutionalGoogleAccountNeedsNoApprovalData()
+    {
+        var response = await AuthenticateAsync(
+            new FakeGoogleAccounts(),
+            new("sub-4", "ana@ucb.edu.bo", true, "expected", "ucb.edu.bo", "Ana", "Paz"));
+
+        Assert.False(response.RequiresApprovalData);
+        Assert.Null(response.FirstName);
+    }
+
     private static Task<GoogleAuthResponse> AuthenticateAsync(
         FakeGoogleAccounts accounts,
         GoogleTokenClaims claims) =>
@@ -182,6 +205,9 @@ public sealed class GoogleAndRecoveryTests
             CreatedInstitutionalEmailVerified = institutionalEmailVerified;
             return Task.FromResult(new GoogleAccountRecord(Guid.NewGuid(), identity.Email, true, status));
         }
+
+        public Task<bool> HasApprovalRequestAsync(Guid userId, CancellationToken cancellationToken) =>
+            Task.FromResult(false);
 
         public Task LinkAsync(Guid userId, GoogleIdentity identity, CancellationToken cancellationToken) =>
             Task.CompletedTask;

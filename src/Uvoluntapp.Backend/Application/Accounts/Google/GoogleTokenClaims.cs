@@ -5,4 +5,6 @@ public sealed record GoogleTokenClaims(
     string Email,
     bool EmailVerified,
     string Audience,
-    string? HostedDomain);
+    string? HostedDomain,
+    string? GivenName = null,
+    string? FamilyName = null);
