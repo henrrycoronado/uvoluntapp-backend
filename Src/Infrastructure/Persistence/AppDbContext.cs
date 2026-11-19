@@ -4,8 +4,15 @@ using Microsoft.EntityFrameworkCore;
 using U_VoluntApp_Core.Src.Domain.Entities;
 using CoreProgram = U_VoluntApp_Core.Src.Domain.Entities.Program;
 namespace U_VoluntApp_Core.Src.Infrastructure.Persistence;
-public sealed class AppUser : IdentityUser<Guid> { public string Status { get; set; } = "PRE_REGISTERED"; public DateTime? DeletedAt { get; set; } }
+public sealed class AppUser : IdentityUser<Guid> { public AccountStatus Status { get; set; } = AccountStatus.PRE_REGISTERED; public DateTime? DeletedAt { get; set; } }
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbContext<AppUser,IdentityRole<Guid>,Guid>(options) {
  public DbSet<Profile> Profiles=>Set<Profile>(); public DbSet<Career> Careers=>Set<Career>(); public DbSet<AuthSession> AuthSessions=>Set<AuthSession>(); public DbSet<AccountApprovalRequest> AccountApprovalRequests=>Set<AccountApprovalRequest>(); public DbSet<RoleAssignment> RoleAssignments=>Set<RoleAssignment>(); public DbSet<AdminGrantRequest> AdminGrantRequests=>Set<AdminGrantRequest>(); public DbSet<AdminGrantApproval> AdminGrantApprovals=>Set<AdminGrantApproval>(); public DbSet<AcademicPeriod> AcademicPeriods=>Set<AcademicPeriod>(); public DbSet<CoreProgram> Programs=>Set<CoreProgram>(); public DbSet<ProgramPeriod> ProgramPeriods=>Set<ProgramPeriod>(); public DbSet<Activity> Activities=>Set<Activity>(); public DbSet<ActivityReschedule> ActivityReschedules=>Set<ActivityReschedule>(); public DbSet<AuditEvent> AuditEvents=>Set<AuditEvent>();
+
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        base.ConfigureConventions(configurationBuilder);
+        configurationBuilder.Properties<Enum>().HaveConversion<string>();
+    }
+
  protected override void OnModelCreating(ModelBuilder b){base.OnModelCreating(b);b.Ignore<IdentityRole<Guid>>();b.Ignore<IdentityRoleClaim<Guid>>();b.Ignore<IdentityUserRole<Guid>>();b.Ignore<IdentityUserClaim<Guid>>();b.Ignore<IdentityUserToken<Guid>>();b.Entity<AppUser>().ToTable("users");b.Entity<IdentityUserLogin<Guid>>().ToTable("user_logins");foreach(var t in new[]{typeof(Profile),typeof(Career),typeof(AuthSession),typeof(AccountApprovalRequest),typeof(RoleAssignment),typeof(AdminGrantRequest),typeof(AdminGrantApproval),typeof(AcademicPeriod),typeof(CoreProgram),typeof(ProgramPeriod),typeof(Activity),typeof(ActivityReschedule),typeof(AuditEvent)}){b.Entity(t).HasKey("Id");b.Entity(t).Property<DateTime>("CreatedAt").HasColumnName("created_at");b.Entity(t).Property<DateTime?>("DeletedAt").HasColumnName("deleted_at");b.Entity(t).Property<uint>("xmin").IsRowVersion();}b.Entity<Profile>().ToTable("profiles");b.Entity<Career>().ToTable("careers");b.Entity<AuthSession>().ToTable("auth_sessions");b.Entity<AccountApprovalRequest>().ToTable("account_approval_requests");b.Entity<RoleAssignment>().ToTable("role_assignments");b.Entity<AdminGrantRequest>().ToTable("admin_grant_requests");b.Entity<AdminGrantApproval>().ToTable("admin_grant_approvals");b.Entity<AcademicPeriod>().ToTable("academic_periods");b.Entity<CoreProgram>().ToTable("programs");b.Entity<ProgramPeriod>().ToTable("program_periods");b.Entity<Activity>().ToTable("activities");b.Entity<ActivityReschedule>().ToTable("activity_reschedules");b.Entity<AuditEvent>().ToTable("audit_events");}
 }
