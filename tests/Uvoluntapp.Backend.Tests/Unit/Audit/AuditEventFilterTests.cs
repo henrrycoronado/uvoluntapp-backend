@@ -1,5 +1,5 @@
 using System;
-using Uvoluntapp.Backend.Application.Audit;
+using Uvoluntapp.Backend.Application.DTOs.Audit;
 using Xunit;
 
 namespace Uvoluntapp.Backend.Tests.Unit.Audit;

@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Net.Http.Headers;
-using Uvoluntapp.Backend.Application.Accounts;
-using Uvoluntapp.Backend.Presentation.Accounts;
+using Uvoluntapp.Backend.Application.Exceptions.Accounts;
+using Uvoluntapp.Backend.Presentation.Helpers;
 using Xunit;
 
 namespace Uvoluntapp.Backend.Tests.Unit.Accounts;

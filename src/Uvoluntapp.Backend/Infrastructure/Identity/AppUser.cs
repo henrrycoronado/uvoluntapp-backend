@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Identity;
-using Uvoluntapp.Backend.Domain.Accounts;
+using Uvoluntapp.Backend.Domain.Utils.Enums;
 
 namespace Uvoluntapp.Backend.Infrastructure.Identity;
 
@@ -10,6 +10,11 @@ public sealed class AppUser : IdentityUser<Guid>
     public string? InstitutionalEmail { get; set; }
 
     public DateTime? InstitutionalEmailVerifiedAt { get; set; }
+
+    // Verificación de la cuenta: automática con un correo institucional (VerifiedBy null) o manual de un ADMIN.
+    public DateTime? VerifiedAt { get; set; }
+
+    public Guid? VerifiedBy { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

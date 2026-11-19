@@ -1,10 +1,12 @@
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Uvoluntapp.Backend.Application.Audit;
-using Uvoluntapp.Backend.Domain;
-using Uvoluntapp.Backend.Domain.Accounts;
-using Uvoluntapp.Backend.Domain.Audit;
+using System;
+using Uvoluntapp.Backend.Application.DTOs.Audit;
+using Uvoluntapp.Backend.Application.Services.Audit;
+using Uvoluntapp.Backend.Domain.Entities.Accounts;
+using Uvoluntapp.Backend.Domain.Entities.Audit;
+using Uvoluntapp.Backend.Domain.Utils.Constants;
+using Uvoluntapp.Backend.Domain.Utils.Enums;
 using Xunit;
 
 namespace Uvoluntapp.Backend.Tests.Unit.Audit;

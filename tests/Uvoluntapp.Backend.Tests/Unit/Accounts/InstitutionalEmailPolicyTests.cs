@@ -1,4 +1,4 @@
-using Uvoluntapp.Backend.Application.Accounts.Contracts;
+using Uvoluntapp.Backend.Application.Services.Accounts;
 using Xunit;
 
 namespace Uvoluntapp.Backend.Tests.Unit.Accounts;

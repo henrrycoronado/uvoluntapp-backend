@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Uvoluntapp.Backend.Application.Accounts.Contracts;
-using Uvoluntapp.Backend.Application.Administration.Contracts;
-using Uvoluntapp.Backend.Application.Administration.Services;
-using Uvoluntapp.Backend.Domain.Accounts;
-using Uvoluntapp.Backend.Presentation.Common;
+using Uvoluntapp.Backend.Application.DTOs.Accounts;
+using Uvoluntapp.Backend.Application.DTOs.Administration;
+using Uvoluntapp.Backend.Application.Services.Administration;
+using Uvoluntapp.Backend.Domain.Utils.Enums;
+using Uvoluntapp.Backend.Presentation.Helpers;
 
 namespace Uvoluntapp.Backend.Presentation.Controllers;
 
@@ -31,6 +31,20 @@ public sealed class UsersController(UserAdministrationService users) : Controlle
     {
         await users.SuspendAsync(CurrentUser.Id(User), userId, request.Reason, cancellationToken);
         return Ok(new MessageResponse { Message = "Cuenta suspendida." });
+    }
+
+    [HttpPost("{userId:guid}/verify")]
+    public async Task<ActionResult<MessageResponse>> Verify(Guid userId, CancellationToken cancellationToken)
+    {
+        await users.VerifyAsync(CurrentUser.Id(User), userId, cancellationToken);
+        return Ok(new MessageResponse { Message = "Cuenta verificada." });
+    }
+
+    [HttpPost("{userId:guid}/change-email")]
+    public async Task<ActionResult<MessageResponse>> ChangeEmail(Guid userId, ChangeUserEmailRequest request, CancellationToken cancellationToken)
+    {
+        await users.ChangeEmailAsync(CurrentUser.Id(User), userId, request, cancellationToken);
+        return Ok(new MessageResponse { Message = "Correo de acceso actualizado. La persona debe recuperar su contraseña con el correo nuevo." });
     }
 
     [HttpPost("{userId:guid}/reactivate")]

@@ -1,6 +1,8 @@
 using System;
-using Uvoluntapp.Backend.Application.Authorization;
-using Uvoluntapp.Backend.Domain.Accounts;
+using Uvoluntapp.Backend.Application.DTOs.Authorization;
+using Uvoluntapp.Backend.Application.Services.Authorization;
+using Uvoluntapp.Backend.Domain.Entities.Accounts;
+using Uvoluntapp.Backend.Domain.Utils.Enums;
 using Xunit;
 
 namespace Uvoluntapp.Backend.Tests.Unit.Authorization;

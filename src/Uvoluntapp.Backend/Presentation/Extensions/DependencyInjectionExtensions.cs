@@ -1,30 +1,26 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
-using Uvoluntapp.Backend.Application.Accounts;
-using Uvoluntapp.Backend.Application.Accounts.Approvals;
-using Uvoluntapp.Backend.Application.Accounts.Email;
-using Uvoluntapp.Backend.Application.Accounts.Google;
-using Uvoluntapp.Backend.Application.Accounts.Recovery;
-using Uvoluntapp.Backend.Application.Accounts.Suspension;
-using Uvoluntapp.Backend.Application.Administration.Ports;
-using Uvoluntapp.Backend.Application.Administration.Services;
-using Uvoluntapp.Backend.Application.Audit;
-using Uvoluntapp.Backend.Application.Authorization;
-using Uvoluntapp.Backend.Application.Common;
-using Uvoluntapp.Backend.Application.Profiles;
-using Uvoluntapp.Backend.Application.Profiles.Ports;
-using Uvoluntapp.Backend.Application.Profiles.Services;
-using Uvoluntapp.Backend.Application.Programs.Ports;
-using Uvoluntapp.Backend.Application.Programs.Services;
-using Uvoluntapp.Backend.Infrastructure.Accounts;
-using Uvoluntapp.Backend.Infrastructure.Administration;
+using Uvoluntapp.Backend.Application.Interfaces.Accounts;
+using Uvoluntapp.Backend.Application.Interfaces.Administration;
+using Uvoluntapp.Backend.Application.Interfaces.Audit;
+using Uvoluntapp.Backend.Application.Interfaces.Common;
+using Uvoluntapp.Backend.Application.Interfaces.Profiles;
+using Uvoluntapp.Backend.Application.Interfaces.Programs;
+using Uvoluntapp.Backend.Application.Services.Accounts;
+using Uvoluntapp.Backend.Application.Services.Administration;
+using Uvoluntapp.Backend.Application.Services.Audit;
+using Uvoluntapp.Backend.Application.Services.Authorization;
+using Uvoluntapp.Backend.Application.Services.Profiles;
+using Uvoluntapp.Backend.Application.Services.Programs;
+using Uvoluntapp.Backend.Infrastructure.Auth;
+using Uvoluntapp.Backend.Infrastructure.Email;
 using Uvoluntapp.Backend.Infrastructure.Identity;
 using Uvoluntapp.Backend.Infrastructure.Persistence;
-using Uvoluntapp.Backend.Infrastructure.Programs;
-using Uvoluntapp.Backend.Infrastructure.Seeding;
-using Uvoluntapp.Backend.Presentation.Accounts;
-using Uvoluntapp.Backend.Presentation.Errors;
+using Uvoluntapp.Backend.Infrastructure.Persistence.Repositories;
+using Uvoluntapp.Backend.Infrastructure.Persistence.Seeders;
+using Uvoluntapp.Backend.Presentation.Helpers;
+using Uvoluntapp.Backend.Presentation.Middleware;
 
 namespace Uvoluntapp.Backend.Presentation.Extensions;
 
@@ -90,6 +86,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<AccountSuspensionService>();
         services.AddScoped<AccountApprovalService>();
         services.AddScoped<RecoveryService>();
+        services.AddSingleton<IWebLinks, WebLinks>();
         services.AddScoped<GoogleAuthService>();
         services.AddScoped<RoleAssignmentService>();
         services.AddScoped<AdminGrantService>();
@@ -103,7 +100,8 @@ public static class DependencyInjectionExtensions
         services.AddCors(options => options.AddPolicy("web", policy => policy
             .WithOrigins(allowedOrigins)
             .AllowAnyHeader()
-            .AllowAnyMethod()));
+            .AllowAnyMethod()
+            .AllowCredentials()));
 
         services.AddDataProtection();
         services.AddProblemDetails();

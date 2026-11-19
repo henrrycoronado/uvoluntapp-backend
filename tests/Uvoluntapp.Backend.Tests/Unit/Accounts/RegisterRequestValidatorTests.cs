@@ -1,8 +1,9 @@
-using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using Uvoluntapp.Backend.Application.Accounts.Contracts;
+using System;
+using Uvoluntapp.Backend.Application.DTOs.Accounts;
+using Uvoluntapp.Backend.Application.Validators.Accounts;
 using Xunit;
 
 namespace Uvoluntapp.Backend.Tests.Unit.Accounts;

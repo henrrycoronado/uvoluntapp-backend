@@ -1,12 +1,12 @@
-using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
 using System.Text;
+using System;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using Uvoluntapp.Backend.Domain.Accounts;
-using Uvoluntapp.Backend.Infrastructure.Accounts;
+using Uvoluntapp.Backend.Domain.Entities.Accounts;
+using Uvoluntapp.Backend.Infrastructure.Auth;
 using Xunit;
 
 namespace Uvoluntapp.Backend.Tests.Unit.Accounts;

@@ -1,8 +1,10 @@
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Uvoluntapp.Backend.Application.Accounts.Suspension;
-using Uvoluntapp.Backend.Domain.Accounts;
+using System;
+using Uvoluntapp.Backend.Application.Exceptions.Accounts;
+using Uvoluntapp.Backend.Application.Services.Accounts;
+using Uvoluntapp.Backend.Domain.Entities.Accounts;
+using Uvoluntapp.Backend.Domain.Utils.Enums;
 using Xunit;
 
 namespace Uvoluntapp.Backend.Tests.Unit.Accounts.Suspension;

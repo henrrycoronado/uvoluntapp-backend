@@ -1,12 +1,16 @@
-using System;
 using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
-using Uvoluntapp.Backend.Application.Accounts;
-using Uvoluntapp.Backend.Application.Accounts.Contracts;
-using Uvoluntapp.Backend.Application.Accounts.Google;
-using Uvoluntapp.Backend.Application.Accounts.Recovery;
-using Uvoluntapp.Backend.Domain.Accounts;
+using System.Threading;
+using System;
+using Uvoluntapp.Backend.Application.DTOs.Accounts;
+using Uvoluntapp.Backend.Application.Exceptions.Accounts;
+using Uvoluntapp.Backend.Application.Interfaces.Accounts;
+using Uvoluntapp.Backend.Application.Interfaces.Common;
+using Uvoluntapp.Backend.Application.Services.Accounts;
+using Uvoluntapp.Backend.Domain.Entities.Accounts;
+using Uvoluntapp.Backend.Domain.Policies;
+using Uvoluntapp.Backend.Domain.Utils.Enums;
+using Uvoluntapp.Backend.Domain.Utils.Exceptions;
 using Xunit;
 
 namespace Uvoluntapp.Backend.Tests.Unit;
@@ -129,6 +133,29 @@ public sealed class GoogleAndRecoveryTests
         Assert.Equal(0, issuer.Issued);
     }
 
+    [Fact]
+    public async Task NewExternalGoogleAccountAsksForApprovalDataWithGoogleNames()
+    {
+        var response = await AuthenticateAsync(
+            new FakeGoogleAccounts(),
+            new("sub-3", "ana@gmail.com", true, "expected", null, "Ana", "Paz"));
+
+        Assert.True(response.RequiresApprovalData);
+        Assert.Equal("ana@gmail.com", response.Email);
+        Assert.Equal(("Ana", "Paz"), (response.FirstName, response.LastName));
+    }
+
+    [Fact]
+    public async Task InstitutionalGoogleAccountNeedsNoApprovalData()
+    {
+        var response = await AuthenticateAsync(
+            new FakeGoogleAccounts(),
+            new("sub-4", "ana@ucb.edu.bo", true, "expected", "ucb.edu.bo", "Ana", "Paz"));
+
+        Assert.False(response.RequiresApprovalData);
+        Assert.Null(response.FirstName);
+    }
+
     private static Task<GoogleAuthResponse> AuthenticateAsync(
         FakeGoogleAccounts accounts,
         GoogleTokenClaims claims) =>
@@ -141,6 +168,7 @@ public sealed class GoogleAndRecoveryTests
             new FakeRecoveryTokenGenerator(),
             new FakeRateLimiter(),
             new FakeEmailSender(),
+            new FakeLinks(),
             TimeProvider.System)
         .RequestAsync(new ForgotPasswordRequest("person@example.com"), "127.0.0.1");
 
@@ -183,6 +211,9 @@ public sealed class GoogleAndRecoveryTests
             return Task.FromResult(new GoogleAccountRecord(Guid.NewGuid(), identity.Email, true, status));
         }
 
+        public Task<bool> HasApprovalRequestAsync(Guid userId, CancellationToken cancellationToken) =>
+            Task.FromResult(false);
+
         public Task LinkAsync(Guid userId, GoogleIdentity identity, CancellationToken cancellationToken) =>
             Task.CompletedTask;
     }
@@ -203,7 +234,7 @@ public sealed class GoogleAndRecoveryTests
         public Task<PasswordRecoveryToken?> FindTokenAsync(string tokenHash, CancellationToken cancellationToken) =>
             Task.FromResult<PasswordRecoveryToken?>(null);
 
-        public Task SetPasswordAsync(Guid userId, string newPassword, CancellationToken cancellationToken) =>
+        public Task SetPasswordAsync(Guid userId, string newPassword, DateTime utcNow, CancellationToken cancellationToken) =>
             Task.CompletedTask;
     }
 
@@ -224,5 +255,12 @@ public sealed class GoogleAndRecoveryTests
     {
         public Task SendAsync(string recipient, string subject, string message, CancellationToken cancellationToken) =>
             Task.CompletedTask;
+    }
+
+    private sealed class FakeLinks : IWebLinks
+    {
+        public string PasswordReset(string token) => "https://web/restablecer?token=" + token;
+
+        public string CreatePassword(string email) => "https://web/crear-contrasena";
     }
 }

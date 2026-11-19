@@ -1,20 +1,20 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Net.Http;
+using System.Net;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
+using System.Text;
 using System.Threading.Tasks;
+using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Uvoluntapp.Backend.Application.Accounts;
-using Uvoluntapp.Backend.Application.Accounts.Contracts;
-using Uvoluntapp.Backend.Domain.Accounts;
-using Uvoluntapp.Backend.Infrastructure.Accounts;
+using Uvoluntapp.Backend.Application.DTOs.Accounts;
+using Uvoluntapp.Backend.Application.Exceptions.Accounts;
+using Uvoluntapp.Backend.Domain.Utils.Enums;
+using Uvoluntapp.Backend.Infrastructure.Auth;
 using Xunit;
 
 namespace Uvoluntapp.Backend.Tests.Integration.Accounts;
@@ -243,6 +243,240 @@ public sealed class AuthFlowTests(AuthFixture fixture) : IClassFixture<AuthFixtu
         await AssertProblemAsync(await client.PostAsJsonAsync("register", new { email = "invalid" }), HttpStatusCode.BadRequest);
         await AssertProblemAsync(await client.PostAsJsonAsync("verify-otp", new { email = "test@example.org", code = "00000" }), HttpStatusCode.BadRequest);
         await AssertProblemAsync(await client.PostAsJsonAsync("verify-otp", new { email = "test@example.org", code = "１２３４５６" }), HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task GoogleAccountWithoutPasswordProvesItsMailboxOnceToCreateOne()
+    {
+        using var client = fixture.Client();
+        var email = await GoogleOnlyUserAsync(AccountStatus.ACTIVE);
+        var password = Guid.NewGuid().ToString("N");
+
+        var login = await client.PostAsJsonAsync("login", new { email, password });
+        Assert.Equal(HttpStatusCode.Conflict, login.StatusCode);
+        var problem = await login.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("urn:uvoluntapp:password-setup-required", problem.GetProperty("type").GetString());
+        var code = fixture.Mail.Code(email);
+
+        var wrong = code == "000000" ? "111111" : "000000";
+        await AssertProblemAsync(await client.PostAsJsonAsync("set-password", new { email, code = wrong, password }), HttpStatusCode.UnprocessableEntity);
+        var set = await client.PostAsJsonAsync("set-password", new { email, code, password });
+        set.EnsureSuccessStatusCode();
+        var result = await set.Content.ReadFromJsonAsync<SetPasswordResponse>();
+        Assert.Equal("ACTIVE", result!.AccountStatus);
+        Assert.NotNull(result.Tokens);
+
+        await AssertProblemAsync(await client.PostAsJsonAsync("set-password", new { email, code, password = "otra-clave-123" }), HttpStatusCode.UnprocessableEntity);
+        Assert.True((await client.PostAsJsonAsync("login", new { email, password })).IsSuccessStatusCode);
+    }
+
+    [Fact]
+    public async Task PendingGoogleAccountCreatesItsPasswordWithoutASession()
+    {
+        using var client = fixture.Client();
+        var email = await GoogleOnlyUserAsync(AccountStatus.PENDING_APPROVAL);
+        var password = Guid.NewGuid().ToString("N");
+        await AssertProblemAsync(await client.PostAsJsonAsync("login", new { email, password }), HttpStatusCode.Conflict);
+
+        var set = await client.PostAsJsonAsync("set-password", new { email, code = fixture.Mail.Code(email), password });
+        set.EnsureSuccessStatusCode();
+        var result = await set.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("PENDING_APPROVAL", result.GetProperty("accountStatus").GetString());
+        Assert.False(result.TryGetProperty("tokens", out _));
+        await AssertProblemAsync(await client.PostAsJsonAsync("login", new { email, password }), HttpStatusCode.UnprocessableEntity);
+    }
+
+    [Fact]
+    public async Task PasswordResetLinkWorksOnceRevokesEverySessionAndIsAudited()
+    {
+        using var client = fixture.Client();
+        var request = NewRegistration("ucb.edu.bo");
+        await RegisterAsync(client, request);
+        var verified = await (await VerifyAsync(client, request.Email)).Content.ReadFromJsonAsync<VerifyOtpResponse>();
+
+        (await client.PostAsJsonAsync("forgot-password", new { email = request.Email })).EnsureSuccessStatusCode();
+        var link = System.Text.RegularExpressions.Regex.Match(fixture.Mail.Message(request.Email), @"https?://\S+/restablecer\?token=(\S+)");
+        Assert.True(link.Success);
+        var token = Uri.UnescapeDataString(link.Groups[1].Value);
+
+        await AssertProblemAsync(await client.PostAsJsonAsync("reset-password", new { token, newPassword = "corta" }), HttpStatusCode.BadRequest);
+        var password = Guid.NewGuid().ToString("N");
+        (await client.PostAsJsonAsync("reset-password", new { token, newPassword = password })).EnsureSuccessStatusCode();
+        await AssertProblemAsync(await client.PostAsJsonAsync("reset-password", new { token, newPassword = password }), HttpStatusCode.UnprocessableEntity);
+
+        Assert.False((await client.PostAsJsonAsync("refresh", new { refreshToken = verified!.Tokens!.RefreshToken })).IsSuccessStatusCode);
+        Assert.False((await client.PostAsJsonAsync("login", new { request.Email, request.Password })).IsSuccessStatusCode);
+        Assert.True((await client.PostAsJsonAsync("login", new { request.Email, password })).IsSuccessStatusCode);
+        await using var db = fixture.Context();
+        var user = await db.Users.SingleAsync(u => u.Email == request.Email);
+        Assert.True(await db.AuditEvents.AnyAsync(e => e.Action == "PASSWORD_RESET" && e.ResourceId == user.Id));
+    }
+
+    [Fact]
+    public async Task RegistrationStoresThePhoneInTheProfile()
+    {
+        using var client = fixture.Client();
+        var request = NewRegistration("ucb.edu.bo") with { Phone = "+591 70000000" };
+        await RegisterAsync(client, request);
+
+        await using var db = fixture.Context();
+        var user = await db.Users.SingleAsync(u => u.Email == request.Email);
+        Assert.Equal("+591 70000000", (await db.Profiles.SingleAsync(p => p.UserId == user.Id)).Phone);
+    }
+
+    [Fact]
+    public async Task PreRegisteredInstitutionalAccountIsClaimedKeepingItsProfile()
+    {
+        using var client = fixture.Client();
+        var email = $"{Guid.NewGuid():N}@ucb.edu.bo";
+        var id = Guid.NewGuid();
+        await using (var db = fixture.Context())
+        {
+            db.Users.Add(new Uvoluntapp.Backend.Infrastructure.Identity.AppUser
+            {
+                Id = id,
+                UserName = email,
+                NormalizedUserName = email.ToUpperInvariant(),
+                Email = email,
+                NormalizedEmail = email.ToUpperInvariant(),
+                Status = AccountStatus.PRE_REGISTERED,
+                SecurityStamp = Guid.NewGuid().ToString(),
+            });
+            db.Profiles.Add(new Uvoluntapp.Backend.Domain.Entities.Accounts.Profile { UserId = id, FirstName = "Histórico", LastName = "Importado" });
+            await db.SaveChangesAsync();
+        }
+
+        var request = NewRegistration("ucb.edu.bo") with { Email = email };
+        await RegisterAsync(client, request);
+        var verified = await (await VerifyAsync(client, email)).Content.ReadFromJsonAsync<VerifyOtpResponse>();
+
+        Assert.Equal("ACTIVE", verified!.AccountStatus);
+        await using var check = fixture.Context();
+        var user = await check.Users.SingleAsync(u => u.NormalizedEmail == email.ToUpperInvariant());
+        Assert.Equal(id, user.Id);
+        Assert.Equal("Histórico", (await check.Profiles.SingleAsync(p => p.UserId == id)).FirstName);
+        Assert.True((await client.PostAsJsonAsync("login", new { email, request.Password })).IsSuccessStatusCode);
+    }
+
+    [Fact]
+    public async Task RegisteringTheEmailOfAGoogleAccountSendsTheCodeToCreateItsPassword()
+    {
+        using var client = fixture.Client();
+        var email = await GoogleOnlyUserAsync(AccountStatus.ACTIVE);
+        var unknown = await RegisterAsync(client, NewRegistration("example.org"));
+        var request = NewRegistration("example.org") with { Email = email };
+
+        Assert.Equal(unknown, await RegisterAsync(client, request));
+        Assert.Contains("/crear-contrasena", fixture.Mail.Message(email));
+        var set = await client.PostAsJsonAsync("set-password", new { email, code = fixture.Mail.Code(email), password = request.Password });
+        set.EnsureSuccessStatusCode();
+        await using var db = fixture.Context();
+        var user = await db.Users.SingleAsync(u => u.Email == email);
+        Assert.True(await db.AuditEvents.AnyAsync(e => e.Action == "PASSWORD_CREATED" && e.ResourceId == user.Id));
+    }
+
+    [Fact]
+    public async Task ProfileAndAccessEmailChangesAreAuditedAndTheEmailChangeRevokesSessions()
+    {
+        using var client = fixture.Client();
+        var request = NewRegistration("ucb.edu.bo");
+        await RegisterAsync(client, request);
+        var verified = await (await VerifyAsync(client, request.Email)).Content.ReadFromJsonAsync<VerifyOtpResponse>();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", verified!.Tokens!.AccessToken);
+
+        (await client.PatchAsJsonAsync("/api/v1/profile", new { phone = "77777777" })).EnsureSuccessStatusCode();
+        var newEmail = $"{Guid.NewGuid():N}@example.org";
+        (await client.PostAsJsonAsync("/api/v1/profile/change-email", new { newEmail, password = request.Password })).EnsureSuccessStatusCode();
+        (await client.PostAsJsonAsync("/api/v1/profile/verify-email-change", new { code = fixture.Mail.Code(newEmail) })).EnsureSuccessStatusCode();
+
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/profile")).StatusCode);
+        await using var db = fixture.Context();
+        var user = await db.Users.SingleAsync(u => u.Email == newEmail);
+        var actions = await db.AuditEvents.Where(e => e.ResourceId == user.Id).Select(e => e.Action).ToListAsync();
+        Assert.Contains("PROFILE_UPDATED", actions);
+        Assert.Contains("ACCESS_EMAIL_CHANGED", actions);
+    }
+
+    [Fact]
+    public async Task RejectedAccountSeesWhenItCanReapplyAndReappliesKeepingTheHistory()
+    {
+        using var client = fixture.Client();
+        var password = Guid.NewGuid().ToString("N");
+        var recent = await RejectedUserAsync(password, DateTime.UtcNow.AddHours(-2));
+        var login = await client.PostAsJsonAsync("login", new { email = recent, password });
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, login.StatusCode);
+        var problem = await login.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("urn:uvoluntapp:inactive-account", problem.GetProperty("type").GetString());
+        Assert.Equal("REJECTED", problem.GetProperty("accountStatus").GetString());
+        Assert.Equal("Sin vínculo", problem.GetProperty("rejectionReason").GetString());
+        Assert.True(problem.TryGetProperty("reapplyAvailableAt", out _));
+        var tooEarly = await client.PostAsJsonAsync("reapply", Reapplication(recent, password));
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, tooEarly.StatusCode);
+        Assert.Equal("urn:uvoluntapp:reapply-too-early", (await tooEarly.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("type").GetString());
+
+        var old = await RejectedUserAsync(password, DateTime.UtcNow.AddDays(-2));
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("reapply", Reapplication(old, "otra-clave-999"))).StatusCode);
+        (await client.PostAsJsonAsync("reapply", Reapplication(old, password))).EnsureSuccessStatusCode();
+
+        await using var db = fixture.Context();
+        var user = await db.Users.SingleAsync(u => u.Email == old);
+        Assert.Equal(AccountStatus.PENDING_APPROVAL, user.Status);
+        var requests = await db.AccountApprovalRequests.Where(r => r.UserId == user.Id).OrderBy(r => r.CreatedAt).ToListAsync();
+        Assert.Equal(2, requests.Count);
+        Assert.Equal(AccountApprovalStatus.REJECTED, requests[0].Status);
+        Assert.Equal("Catequista", requests[1].Relationship);
+    }
+
+    private static object Reapplication(string email, string password) =>
+        new { email, password, firstName = "Ana", lastName = "Paz", phone = "70000000", relationWithPastoral = "Catequista" };
+
+    private async Task<string> RejectedUserAsync(string password, DateTime reviewedAt)
+    {
+        var email = $"{Guid.NewGuid():N}@example.org";
+        var user = new Uvoluntapp.Backend.Infrastructure.Identity.AppUser
+        {
+            Id = Guid.NewGuid(),
+            UserName = email,
+            NormalizedUserName = email.ToUpperInvariant(),
+            Email = email,
+            NormalizedEmail = email.ToUpperInvariant(),
+            EmailConfirmed = true,
+            Status = AccountStatus.REJECTED,
+            SecurityStamp = Guid.NewGuid().ToString(),
+        };
+        user.PasswordHash = new Microsoft.AspNetCore.Identity.PasswordHasher<Uvoluntapp.Backend.Infrastructure.Identity.AppUser>().HashPassword(user, password);
+        await using var db = fixture.Context();
+        db.Users.Add(user);
+        var request = new Uvoluntapp.Backend.Domain.Entities.Accounts.AccountApprovalRequest
+        {
+            UserId = user.Id,
+            FirstName = "Ana",
+            LastName = "Paz",
+            Relationship = "Voluntaria",
+        };
+        request.Reject(user.Id, "Sin vínculo", reviewedAt);
+        db.AccountApprovalRequests.Add(request);
+        await db.SaveChangesAsync();
+        return email;
+    }
+
+    private async Task<string> GoogleOnlyUserAsync(AccountStatus status)
+    {
+        var email = $"{Guid.NewGuid():N}@example.org";
+        await using var db = fixture.Context();
+        db.Users.Add(new Uvoluntapp.Backend.Infrastructure.Identity.AppUser
+        {
+            Id = Guid.NewGuid(),
+            UserName = email,
+            NormalizedUserName = email.ToUpperInvariant(),
+            Email = email,
+            NormalizedEmail = email.ToUpperInvariant(),
+            EmailConfirmed = true,
+            Status = status,
+            SecurityStamp = Guid.NewGuid().ToString(),
+        });
+        await db.SaveChangesAsync();
+        return email;
     }
 
     private static RegisterRequest NewRegistration(string domain) => new()

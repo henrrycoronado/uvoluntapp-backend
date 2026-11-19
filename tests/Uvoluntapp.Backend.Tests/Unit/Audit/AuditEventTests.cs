@@ -1,8 +1,8 @@
-using System;
 using System.Collections.Generic;
 using System.Text.Json.Nodes;
-using Uvoluntapp.Backend.Domain;
-using Uvoluntapp.Backend.Domain.Audit;
+using System;
+using Uvoluntapp.Backend.Domain.Entities.Audit;
+using Uvoluntapp.Backend.Domain.Utils.Constants;
 using Xunit;
 
 namespace Uvoluntapp.Backend.Tests.Unit.Audit;

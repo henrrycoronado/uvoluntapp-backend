@@ -1,5 +1,5 @@
 using System;
-using Uvoluntapp.Backend.Domain.Accounts;
+using Uvoluntapp.Backend.Domain.Entities.Accounts;
 using Xunit;
 
 namespace Uvoluntapp.Backend.Tests.Unit.Accounts.Suspension;

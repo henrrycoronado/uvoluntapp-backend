@@ -1,8 +1,10 @@
-using System;
 using System.Collections.Generic;
-using Uvoluntapp.Backend.Application.Accounts.Approvals;
-using Uvoluntapp.Backend.Application.Profiles;
-using Uvoluntapp.Backend.Domain.Accounts;
+using System;
+using Uvoluntapp.Backend.Application.DTOs.Profiles;
+using Uvoluntapp.Backend.Application.Services.Accounts;
+using Uvoluntapp.Backend.Application.Services.Profiles;
+using Uvoluntapp.Backend.Domain.Entities.Accounts;
+using Uvoluntapp.Backend.Domain.Utils.Enums;
 using Xunit;
 
 namespace Uvoluntapp.Backend.Tests.Unit;

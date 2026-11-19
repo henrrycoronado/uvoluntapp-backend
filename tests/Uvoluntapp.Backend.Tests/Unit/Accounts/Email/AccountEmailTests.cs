@@ -1,5 +1,7 @@
 using System;
-using Uvoluntapp.Backend.Domain.Accounts;
+using Uvoluntapp.Backend.Domain.Entities.Accounts;
+using Uvoluntapp.Backend.Domain.Utils.Enums;
+using Uvoluntapp.Backend.Domain.Utils.Exceptions;
 using Xunit;
 
 namespace Uvoluntapp.Backend.Tests.Unit.Accounts.Email;

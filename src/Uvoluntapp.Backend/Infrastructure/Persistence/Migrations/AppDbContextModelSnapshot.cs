@@ -47,7 +47,7 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                     b.ToTable("user_logins", (string)null);
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.AccountApprovalRequest", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Accounts.AccountApprovalRequest", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -120,7 +120,7 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.AdminGrantApproval", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Accounts.AdminGrantApproval", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -163,7 +163,7 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                     b.ToTable("admin_grant_approvals", (string)null);
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.AdminGrantRequest", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Accounts.AdminGrantRequest", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -217,7 +217,7 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.AuthSession", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Accounts.AuthSession", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -265,7 +265,7 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                     b.ToTable("auth_sessions", (string)null);
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.Career", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Accounts.Career", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -296,7 +296,7 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                     b.ToTable("careers", (string)null);
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.PasswordRecoveryToken", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Accounts.PasswordRecoveryToken", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -330,7 +330,7 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                     b.ToTable("password_recovery_tokens", (string)null);
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.Profile", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Accounts.Profile", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -383,7 +383,7 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                     b.ToTable("profiles", (string)null);
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.RoleAssignment", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Accounts.RoleAssignment", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -470,7 +470,7 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Activities.Activity", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Activities.Activity", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -572,7 +572,7 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Activities.ActivityReschedule", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Activities.ActivityReschedule", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -636,7 +636,7 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.AuditEvent", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Audit.AuditEvent", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -687,7 +687,7 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                     b.ToTable("audit_events", (string)null);
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Programs.AcademicPeriod", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Programs.AcademicPeriod", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -726,7 +726,7 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                     b.ToTable("academic_periods", (string)null);
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Programs.ProgramPeriod", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Programs.ProgramPeriod", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -762,7 +762,7 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                     b.ToTable("program_periods", (string)null);
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Programs.VolunteerProgram", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Programs.VolunteerProgram", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -902,6 +902,14 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(256)")
                         .HasColumnName("user_name");
 
+                    b.Property<DateTime?>("VerifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("verified_at");
+
+                    b.Property<Guid?>("VerifiedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("verified_by");
+
                     b.HasKey("Id");
 
                     b.HasIndex("NormalizedEmail")
@@ -918,7 +926,7 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Infrastructure.Records.PendingEmailVerificationRecord", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Infrastructure.Persistence.Records.PendingEmailVerificationRecord", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -980,7 +988,7 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.AccountApprovalRequest", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Accounts.AccountApprovalRequest", b =>
                 {
                     b.HasOne("Uvoluntapp.Backend.Infrastructure.Identity.AppUser", null)
                         .WithMany()
@@ -994,7 +1002,7 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.AdminGrantApproval", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Accounts.AdminGrantApproval", b =>
                 {
                     b.HasOne("Uvoluntapp.Backend.Infrastructure.Identity.AppUser", null)
                         .WithMany()
@@ -1002,14 +1010,14 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Uvoluntapp.Backend.Domain.Accounts.AdminGrantRequest", null)
+                    b.HasOne("Uvoluntapp.Backend.Domain.Entities.Accounts.AdminGrantRequest", null)
                         .WithMany()
                         .HasForeignKey("RequestId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.AdminGrantRequest", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Accounts.AdminGrantRequest", b =>
                 {
                     b.HasOne("Uvoluntapp.Backend.Infrastructure.Identity.AppUser", null)
                         .WithMany()
@@ -1024,7 +1032,7 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.AuthSession", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Accounts.AuthSession", b =>
                 {
                     b.HasOne("Uvoluntapp.Backend.Infrastructure.Identity.AppUser", null)
                         .WithMany()
@@ -1033,7 +1041,7 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.PasswordRecoveryToken", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Accounts.PasswordRecoveryToken", b =>
                 {
                     b.HasOne("Uvoluntapp.Backend.Infrastructure.Identity.AppUser", null)
                         .WithMany()
@@ -1042,21 +1050,21 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.Profile", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Accounts.Profile", b =>
                 {
-                    b.HasOne("Uvoluntapp.Backend.Domain.Accounts.Career", null)
+                    b.HasOne("Uvoluntapp.Backend.Domain.Entities.Accounts.Career", null)
                         .WithMany()
                         .HasForeignKey("CareerId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Uvoluntapp.Backend.Infrastructure.Identity.AppUser", null)
                         .WithOne()
-                        .HasForeignKey("Uvoluntapp.Backend.Domain.Accounts.Profile", "UserId")
+                        .HasForeignKey("Uvoluntapp.Backend.Domain.Entities.Accounts.Profile", "UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.RoleAssignment", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Accounts.RoleAssignment", b =>
                 {
                     b.HasOne("Uvoluntapp.Backend.Infrastructure.Identity.AppUser", null)
                         .WithMany()
@@ -1070,40 +1078,40 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Uvoluntapp.Backend.Domain.Activities.Activity", null)
+                    b.HasOne("Uvoluntapp.Backend.Domain.Entities.Activities.Activity", null)
                         .WithMany()
                         .HasForeignKey("scope_activity_id")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("Uvoluntapp.Backend.Domain.Programs.VolunteerProgram", null)
+                    b.HasOne("Uvoluntapp.Backend.Domain.Entities.Programs.VolunteerProgram", null)
                         .WithMany()
                         .HasForeignKey("scope_program_id")
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Activities.Activity", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Activities.Activity", b =>
                 {
-                    b.HasOne("Uvoluntapp.Backend.Domain.Programs.AcademicPeriod", null)
+                    b.HasOne("Uvoluntapp.Backend.Domain.Entities.Programs.AcademicPeriod", null)
                         .WithMany()
                         .HasForeignKey("AcademicPeriodId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Uvoluntapp.Backend.Domain.Programs.VolunteerProgram", null)
+                    b.HasOne("Uvoluntapp.Backend.Domain.Entities.Programs.VolunteerProgram", null)
                         .WithMany()
                         .HasForeignKey("ProgramId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("Uvoluntapp.Backend.Domain.Programs.ProgramPeriod", null)
+                    b.HasOne("Uvoluntapp.Backend.Domain.Entities.Programs.ProgramPeriod", null)
                         .WithMany()
                         .HasForeignKey("ProgramId", "AcademicPeriodId")
                         .HasPrincipalKey("ProgramId", "AcademicPeriodId")
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Activities.ActivityReschedule", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Activities.ActivityReschedule", b =>
                 {
-                    b.HasOne("Uvoluntapp.Backend.Domain.Activities.Activity", null)
+                    b.HasOne("Uvoluntapp.Backend.Domain.Entities.Activities.Activity", null)
                         .WithMany()
                         .HasForeignKey("ActivityId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1116,7 +1124,7 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.AuditEvent", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Audit.AuditEvent", b =>
                 {
                     b.HasOne("Uvoluntapp.Backend.Infrastructure.Identity.AppUser", null)
                         .WithMany()
@@ -1124,22 +1132,22 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Programs.ProgramPeriod", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Programs.ProgramPeriod", b =>
                 {
-                    b.HasOne("Uvoluntapp.Backend.Domain.Programs.AcademicPeriod", null)
+                    b.HasOne("Uvoluntapp.Backend.Domain.Entities.Programs.AcademicPeriod", null)
                         .WithMany()
                         .HasForeignKey("AcademicPeriodId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Uvoluntapp.Backend.Domain.Programs.VolunteerProgram", null)
+                    b.HasOne("Uvoluntapp.Backend.Domain.Entities.Programs.VolunteerProgram", null)
                         .WithMany()
                         .HasForeignKey("ProgramId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Infrastructure.Records.PendingEmailVerificationRecord", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Infrastructure.Persistence.Records.PendingEmailVerificationRecord", b =>
                 {
                     b.HasOne("Uvoluntapp.Backend.Infrastructure.Identity.AppUser", null)
                         .WithMany()

@@ -1,0 +1,10 @@
+namespace Uvoluntapp.Backend.Application.DTOs.Accounts;
+
+public sealed record GoogleTokenClaims(
+    string Subject,
+    string Email,
+    bool EmailVerified,
+    string Audience,
+    string? HostedDomain,
+    string? GivenName = null,
+    string? FamilyName = null);

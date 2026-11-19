@@ -1,4 +1,4 @@
-using Uvoluntapp.Backend.Domain.Accounts;
+using Uvoluntapp.Backend.Domain.Utils.Constants;
 using Xunit;
 
 namespace Uvoluntapp.Backend.Tests.Unit.Accounts.Email;

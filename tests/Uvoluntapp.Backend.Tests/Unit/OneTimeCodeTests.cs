@@ -1,7 +1,8 @@
-using System;
 using System.Security.Cryptography;
 using System.Text;
-using Uvoluntapp.Backend.Domain.Accounts;
+using System;
+using Uvoluntapp.Backend.Domain.Entities.Accounts;
+using Uvoluntapp.Backend.Domain.Utils.Enums;
 using Xunit;
 
 namespace Uvoluntapp.Backend.Tests.Unit;

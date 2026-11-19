@@ -1,8 +1,8 @@
-using System;
-using System.Net;
 using System.Net.Http;
+using System.Net;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
+using System;
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
 using Microsoft.AspNetCore.Hosting;
@@ -13,7 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using StackExchange.Redis;
 using Testcontainers.PostgreSql;
-using Uvoluntapp.Backend.Application.Accounts;
+using Uvoluntapp.Backend.Application.Interfaces.Accounts;
 using Uvoluntapp.Backend.Infrastructure.Persistence;
 using Xunit;
 
@@ -30,6 +30,8 @@ public sealed class AuthFixture : IAsyncLifetime
     public TestMailbox Mail { get; } = new();
 
     public string ConnectionString { get; private set; } = string.Empty;
+
+    public string RedisConnection { get; private set; } = string.Empty;
 
     public IConnectionMultiplexer Redis => _host.Services.GetRequiredService<IConnectionMultiplexer>();
 
@@ -74,6 +76,7 @@ public sealed class AuthFixture : IAsyncLifetime
             throw new InvalidOperationException("Configura M1_TEST_POSTGRES y M1_TEST_REDIS juntos.");
         }
 
+        RedisConnection = redisConnection!;
         await using var db = Context();
         await db.Database.MigrateAsync();
         _host = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>

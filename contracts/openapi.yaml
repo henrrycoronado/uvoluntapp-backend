@@ -63,6 +63,9 @@ paths:
         Acepta correo institucional (`@ucb.edu.bo`) o externo.
         Envía OTP de 6 dígitos al correo (válido 10 min, máx 5 intentos).
         Respuesta no reveladora sobre existencia del correo.
+        Una cuenta PRE_REGISTERED (importación histórica) se reclama conservando su perfil.
+        Si el correo es de una cuenta creada con Google sin contraseña, el correo lleva el
+        código para /auth/set-password en lugar del OTP de registro.
         SCRUM-55.
       operationId: register
       security: []
@@ -156,6 +159,11 @@ paths:
         Devuelve JWT de acceso y refresh token.
         5 intentos por minuto por IP y por correo (Redis).
         Los fallos suman al bloqueo de Identity.
+        Una cuenta creada con Google sin contraseña (correo confirmado, ACTIVE o
+        PENDING_APPROVAL) recibe un OTP por correo y un 409
+        `urn:uvoluntapp:password-setup-required`; el cliente sigue en /auth/set-password.
+        Con contraseña correcta y cuenta no activa responde 422 `urn:uvoluntapp:inactive-account`
+        con `accountStatus` y, si fue rechazada, `rejectionReason` y `reapplyAvailableAt`.
         SCRUM-56.
       operationId: login
       security: []
@@ -176,6 +184,78 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: La cuenta se creó con Google y aún no tiene contraseña; se envió un OTP
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /auth/reapply:
+    post:
+      tags: [Auth]
+      summary: Enviar una nueva solicitud tras un rechazo
+      description: |
+        La contraseña prueba la titularidad. Solo una cuenta REJECTED, un día después del rechazo;
+        antes responde 422 `urn:uvoluntapp:reapply-too-early` con `reapplyAvailableAt`.
+        La solicitud anterior se conserva como historial y la cuenta vuelve a PENDING_APPROVAL.
+        SCRUM-108.
+      operationId: reapply
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReapplyRequest'
+      responses:
+        '200':
+          description: Solicitud enviada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /auth/set-password:
+    post:
+      tags: [Auth]
+      summary: Crear la primera contraseña de una cuenta creada con Google
+      description: |
+        Verifica el OTP enviado por /auth/login (5 intentos) y crea la contraseña.
+        El código no se puede reutilizar. Solo una cuenta ACTIVE abre sesión;
+        una PENDING_APPROVAL responde sin tokens.
+        SCRUM-104.
+      operationId: setPassword
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetPasswordRequest'
+      responses:
+        '200':
+          description: Contraseña creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetPasswordResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
         '429':
@@ -235,6 +315,9 @@ paths:
         Si el correo pertenece a una cuenta, se vincula solo con ambos verificados.
         Primer ingreso externo → PENDING_APPROVAL.
         Correo con `hd = ucb.edu.bo` se trata como institucional.
+        Una cuenta externa sin solicitud de aprobación recibe `requiresApprovalData`,
+        los nombres de Google y la cookie `RegistrationProof`; el cliente sigue en
+        /auth/complete-registration.
         La API acepta la lista de IDs de cliente configurada.
         SCRUM-104.
       operationId: googleAuth
@@ -264,7 +347,7 @@ paths:
       tags: [Auth]
       summary: Solicitar enlace de recuperación de contraseña
       description: |
-        Envía enlace de un solo uso válido 30 min.
+        Envía un enlace a la web (`WEB_BASE_URL/restablecer?token=...`) de un solo uso, válido 30 min.
         Respuesta no reveladora. Límites por cuenta e IP.
         SCRUM-105.
       operationId: forgotPassword
@@ -290,7 +373,7 @@ paths:
       tags: [Auth]
       summary: Restablecer contraseña con token de recuperación
       description: |
-        Token de un solo uso, válido 30 min.
+        Token de un solo uso, válido 30 min. Revoca todas las sesiones activas y queda auditado.
         SCRUM-105.
       operationId: resetPassword
       security: []
@@ -969,6 +1052,69 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /users/{userId}/verify:
+    post:
+      tags: [Users]
+      summary: Verificar manualmente una cuenta
+      description: |
+        Solo ADMIN. Para cuentas sin correo institucional que no quedaron verificadas
+        (por ejemplo tras cambiar el correo de acceso a uno externo). Queda auditado.
+        SCRUM-109.
+      operationId: verifyUser
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+      responses:
+        '200':
+          description: Cuenta verificada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /users/{userId}/change-email:
+    post:
+      tags: [Users]
+      summary: Reemplazar el correo de acceso de una cuenta
+      description: |
+        Solo ADMIN, con motivo obligatorio, para quien perdió el acceso a su correo.
+        Sin OTP. Revoca todas las sesiones; la persona recupera su contraseña con el correo nuevo.
+        La cuenta queda verificada solo si el correo nuevo es institucional. Queda auditado.
+        SCRUM-109.
+      operationId: changeUserEmail
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangeUserEmailRequest'
+      responses:
+        '200':
+          description: Correo reemplazado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -2080,6 +2226,11 @@ components:
           type: string
         lastName:
           type: string
+        phone:
+          type: string
+          maxLength: 30
+          nullable: true
+          description: Teléfono de contacto; se guarda en el perfil
       required:
         - email
         - password
@@ -2233,9 +2384,74 @@ components:
           type: boolean
         tokens:
           $ref: '#/components/schemas/TokenPair'
+        email:
+          type: string
+          format: email
+        requiresApprovalData:
+          type: boolean
+          description: Si true, el cliente debe llamar a /auth/complete-registration
+        firstName:
+          type: string
+          nullable: true
+          description: Nombre de Google; solo cuando requiresApprovalData es true
+        lastName:
+          type: string
+          nullable: true
+          description: Apellido de Google; solo cuando requiresApprovalData es true
       required:
         - accountStatus
         - isNewAccount
+        - email
+        - requiresApprovalData
+
+    ReapplyRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phone:
+          type: string
+          maxLength: 30
+        relationWithPastoral:
+          type: string
+      required: [email, password, firstName, lastName, phone, relationWithPastoral]
+
+    SetPasswordRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        code:
+          type: string
+          pattern: '^[0-9]{6}$'
+        password:
+          type: string
+          format: password
+          minLength: 8
+      required:
+        - email
+        - code
+        - password
+
+    SetPasswordResponse:
+      type: object
+      properties:
+        accountStatus:
+          type: string
+          enum: [ACTIVE, PENDING_APPROVAL]
+        tokens:
+          $ref: '#/components/schemas/TokenResponse'
+      required:
+        - accountStatus
 
     ForgotPasswordRequest:
       type: object
@@ -2551,6 +2767,11 @@ components:
         createdAt:
           type: string
           format: date-time
+        verifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Cuenta verificada (correo institucional o ADMIN); null si falta verificación manual
       required:
         - id
         - email
@@ -2634,6 +2855,11 @@ components:
         createdAt:
           type: string
           format: date-time
+        verifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Cuenta verificada (correo institucional o ADMIN); null si falta verificación manual
       required:
         - id
         - email
@@ -2693,6 +2919,11 @@ components:
           type: string
           format: date-time
           nullable: true
+        verifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Cuenta verificada (correo institucional o ADMIN); null si falta verificación manual
       required:
         - id
         - email
@@ -2701,6 +2932,18 @@ components:
         - accountStatus
         - roles
         - createdAt
+
+    ChangeUserEmailRequest:
+      type: object
+      properties:
+        newEmail:
+          type: string
+          format: email
+          maxLength: 256
+        reason:
+          type: string
+          maxLength: 500
+      required: [newEmail, reason]
 
     SuspendUserRequest:
       type: object
