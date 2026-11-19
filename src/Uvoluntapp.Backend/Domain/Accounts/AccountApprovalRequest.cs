@@ -19,4 +19,59 @@ public sealed class AccountApprovalRequest : Entity
     public AccountApprovalStatus Status { get; set; } = AccountApprovalStatus.PENDING_APPROVAL;
 
     public string? RejectionReason { get; set; }
+
+    public void Approve(Guid reviewerId, DateTime reviewedAt)
+    {
+        EnsurePending();
+        Status = AccountApprovalStatus.ACTIVE;
+        ReviewedBy = reviewerId;
+        ReviewedAt = reviewedAt;
+        RejectionReason = null;
+    }
+
+    public void Reject(Guid reviewerId, string reason, DateTime reviewedAt)
+    {
+        EnsurePending();
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            throw new ArgumentException("El motivo del rechazo es obligatorio.", nameof(reason));
+        }
+
+        Status = AccountApprovalStatus.REJECTED;
+        ReviewedBy = reviewerId;
+        ReviewedAt = reviewedAt;
+        RejectionReason = reason.Trim();
+    }
+
+    public bool CanRequestAgainAt(DateTime instant)
+    {
+        return Status == AccountApprovalStatus.REJECTED
+            && ReviewedAt is not null
+            && instant >= ReviewedAt.Value.AddDays(1);
+    }
+
+    public AccountApprovalRequest CreateResubmission()
+    {
+        if (Status != AccountApprovalStatus.REJECTED)
+        {
+            throw new InvalidOperationException("Solo una solicitud rechazada puede volver a solicitarse.");
+        }
+
+        return new AccountApprovalRequest
+        {
+            UserId = UserId,
+            FirstName = FirstName,
+            LastName = LastName,
+            Phone = Phone,
+            Relationship = Relationship,
+        };
+    }
+
+    private void EnsurePending()
+    {
+        if (Status != AccountApprovalStatus.PENDING_APPROVAL)
+        {
+            throw new InvalidOperationException("La solicitud ya fue resuelta.");
+        }
+    }
 }

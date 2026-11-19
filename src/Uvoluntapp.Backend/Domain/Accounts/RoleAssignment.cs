@@ -17,4 +17,11 @@ public sealed class RoleAssignment : Entity
     public DateTime? ValidUntil { get; set; }
 
     public DateTime? RevokedAt { get; set; }
+
+    public bool IsActiveAt(DateTime instant)
+    {
+        return RevokedAt is null
+            && (ValidFrom is null || ValidFrom <= instant)
+            && (ValidUntil is null || ValidUntil > instant);
+    }
 }
