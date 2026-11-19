@@ -7,5 +7,6 @@ public enum AccountError
     InvalidCode,
     RegistrationConflict,
     InactiveAccount,
-    TooManyAttempts
+    TooManyAttempts,
+    PasswordSetupRequired
 }

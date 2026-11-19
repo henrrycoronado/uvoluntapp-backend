@@ -103,7 +103,8 @@ public static class DependencyInjectionExtensions
         services.AddCors(options => options.AddPolicy("web", policy => policy
             .WithOrigins(allowedOrigins)
             .AllowAnyHeader()
-            .AllowAnyMethod()));
+            .AllowAnyMethod()
+            .AllowCredentials()));
 
         services.AddDataProtection();
         services.AddProblemDetails();

@@ -67,6 +67,11 @@ public sealed class AuthController(
     public Task<TokenResponse> Login(LoginRequest request, CancellationToken cancellationToken) =>
         sessions.LoginAsync(request, ClientIp(), cancellationToken);
 
+    [HttpPost("set-password")]
+    [AllowAnonymous]
+    public Task<SetPasswordResponse> SetPassword(SetPasswordRequest request, CancellationToken cancellationToken) =>
+        sessions.SetPasswordAsync(request, ClientIp(), cancellationToken);
+
     [HttpPost("refresh")]
     [AllowAnonymous]
     public Task<TokenResponse> Refresh(RefreshTokenRequest request, CancellationToken cancellationToken) =>
@@ -88,11 +93,19 @@ public sealed class AuthController(
 
     [HttpPost("google")]
     [AllowAnonymous]
-    public Task<GoogleAuthResponse> Google(GoogleAuthRequest request, CancellationToken cancellationToken)
+    public async Task<GoogleAuthResponse> Google(GoogleAuthRequest request, CancellationToken cancellationToken)
     {
         var audiences = (configuration["GOOGLE_CLIENT_IDS"] ?? string.Empty)
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        return google.AuthenticateAsync(request, audiences, cancellationToken);
+        var response = await google.AuthenticateAsync(request, audiences, cancellationToken);
+
+        // Google ya probó el buzón: la misma prueba del OTP habilita completar los datos de aprobación.
+        if (response.RequiresApprovalData)
+        {
+            proof.Issue(Response, response.Email);
+        }
+
+        return response;
     }
 
     [HttpPost("forgot-password")]
