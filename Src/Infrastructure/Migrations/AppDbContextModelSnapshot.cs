@@ -25,16 +25,20 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<System.Guid>", b =>
                 {
                     b.Property<string>("LoginProvider")
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("login_provider");
 
                     b.Property<string>("ProviderKey")
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("provider_key");
 
                     b.Property<string>("ProviderDisplayName")
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("provider_display_name");
 
                     b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
 
                     b.HasKey("LoginProvider", "ProviderKey");
 
@@ -47,7 +51,8 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -58,14 +63,17 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime>("EndsAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("end_date");
 
                     b.Property<string>("Label")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("label");
 
                     b.Property<DateTime>("StartsAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("start_date");
 
                     b.Property<uint>("xmin")
                         .IsConcurrencyToken()
@@ -82,7 +90,8 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -94,25 +103,43 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
 
                     b.Property<string>("FirstName")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("first_name");
 
                     b.Property<string>("LastName")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("last_name");
+
+                    b.Property<string>("Phone")
+                        .HasColumnType("text")
+                        .HasColumnName("phone");
 
                     b.Property<string>("RejectionReason")
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("rejection_reason");
 
                     b.Property<string>("Relationship")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("relation_with_pastoral");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reviewed_at");
+
+                    b.Property<Guid?>("ReviewedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reviewed_by");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("status");
 
                     b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
 
                     b.Property<uint>("xmin")
                         .IsConcurrencyToken()
@@ -122,20 +149,34 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("account_approval_requests", (string)null);
+                    b.HasIndex("ReviewedBy");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("account_approval_requests", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_account_approval_requests_status", "status IN ('PENDING_APPROVAL', 'ACTIVE', 'REJECTED')");
+                        });
                 });
 
             modelBuilder.Entity("U_VoluntApp_Core.Src.Domain.Entities.Activity", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
 
                     b.Property<Guid>("AcademicPeriodId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("period_id");
+
+                    b.Property<string>("CancellationReason")
+                        .HasColumnType("text")
+                        .HasColumnName("cancellation_reason");
 
                     b.Property<int?>("Capacity")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("capacity");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -146,38 +187,55 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("description");
 
                     b.Property<DateTime>("EndsAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ends_at");
 
                     b.Property<DateTime?>("FinishedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("finished_at");
 
                     b.Property<string>("Location")
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("location");
 
                     b.Property<string>("Modality")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("modality");
+
+                    b.Property<string>("PeriodicityNote")
+                        .HasColumnType("text")
+                        .HasColumnName("periodicity_note");
 
                     b.Property<Guid?>("ProgramId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("program_id");
 
                     b.Property<DateTime?>("StartedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
 
                     b.Property<DateTime>("StartsAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("starts_at");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("status");
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("title");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
 
                     b.Property<uint>("xmin")
                         .IsConcurrencyToken()
@@ -187,20 +245,36 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("activities", (string)null);
+                    b.HasIndex("AcademicPeriodId");
+
+                    b.HasIndex("ProgramId", "AcademicPeriodId");
+
+                    b.ToTable("activities", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_activities_capacity", "capacity > 0");
+
+                            t.HasCheckConstraint("ck_activities_modality", "modality IN ('IN_PERSON', 'VIRTUAL', 'HYBRID')");
+
+                            t.HasCheckConstraint("ck_activities_schedule", "ends_at > starts_at");
+
+                            t.HasCheckConstraint("ck_activities_status", "status IN ('DRAFT', 'PUBLISHED', 'IN_PROGRESS', 'FINISHED', 'CANCELLED')");
+                        });
                 });
 
             modelBuilder.Entity("U_VoluntApp_Core.Src.Domain.Entities.ActivityReschedule", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
 
                     b.Property<Guid>("ActivityId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("activity_id");
 
                     b.Property<Guid>("AuthorId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("rescheduled_by");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -211,20 +285,25 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime>("NewEndsAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("new_ends_at");
 
                     b.Property<DateTime>("NewStartsAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("new_starts_at");
 
                     b.Property<DateTime>("PreviousEndsAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("previous_ends_at");
 
                     b.Property<DateTime>("PreviousStartsAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("previous_starts_at");
 
                     b.Property<string>("Reason")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("reason");
 
                     b.Property<uint>("xmin")
                         .IsConcurrencyToken()
@@ -234,20 +313,32 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("activity_reschedules", (string)null);
+                    b.HasIndex("ActivityId");
+
+                    b.HasIndex("AuthorId");
+
+                    b.ToTable("activity_reschedules", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_activity_reschedules_new_schedule", "new_ends_at > new_starts_at");
+
+                            t.HasCheckConstraint("ck_activity_reschedules_previous_schedule", "previous_ends_at > previous_starts_at");
+                        });
                 });
 
             modelBuilder.Entity("U_VoluntApp_Core.Src.Domain.Entities.AdminGrantApproval", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
 
                     b.Property<Guid>("AdminId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("approver_id");
 
                     b.Property<DateTime>("ApprovedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("approved_at");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -258,7 +349,8 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                         .HasColumnName("deleted_at");
 
                     b.Property<Guid>("RequestId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("request_id");
 
                     b.Property<uint>("xmin")
                         .IsConcurrencyToken()
@@ -267,6 +359,11 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                         .HasColumnName("xmin");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AdminId");
+
+                    b.HasIndex("RequestId", "AdminId")
+                        .IsUnique();
 
                     b.ToTable("admin_grant_approvals", (string)null);
                 });
@@ -275,10 +372,12 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
 
                     b.Property<Guid>("BeneficiaryId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("beneficiary_id");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -288,9 +387,22 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("deleted_at");
 
+                    b.Property<string>("RejectionReason")
+                        .HasColumnType("text")
+                        .HasColumnName("rejection_reason");
+
+                    b.Property<Guid>("RequestedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("requested_by");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolved_at");
+
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("status");
 
                     b.Property<uint>("xmin")
                         .IsConcurrencyToken()
@@ -300,21 +412,31 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("admin_grant_requests", (string)null);
+                    b.HasIndex("BeneficiaryId");
+
+                    b.HasIndex("RequestedBy");
+
+                    b.ToTable("admin_grant_requests", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_admin_grant_requests_status", "status IN ('PENDING', 'APPROVED', 'REJECTED')");
+                        });
                 });
 
             modelBuilder.Entity("U_VoluntApp_Core.Src.Domain.Entities.AuditEvent", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
 
                     b.Property<string>("Action")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("action");
 
                     b.Property<Guid?>("ActorId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_id");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -322,18 +444,21 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
 
                     b.Property<string>("Data")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("jsonb")
+                        .HasColumnName("details");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("deleted_at");
 
-                    b.Property<Guid?>("ResourceId")
-                        .HasColumnType("uuid");
+                    b.Property<Guid>("ResourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("entity_id");
 
                     b.Property<string>("ResourceType")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("entity_type");
 
                     b.Property<uint>("xmin")
                         .IsConcurrencyToken()
@@ -342,6 +467,8 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                         .HasColumnName("xmin");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
 
                     b.ToTable("audit_events", (string)null);
                 });
@@ -350,7 +477,8 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -361,17 +489,21 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                         .HasColumnName("deleted_at");
 
                     b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
 
                     b.Property<string>("RefreshTokenHash")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("refresh_token_hash");
 
                     b.Property<DateTime?>("RevokedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at");
 
                     b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
 
                     b.Property<uint>("xmin")
                         .IsConcurrencyToken()
@@ -381,6 +513,11 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("RefreshTokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
                     b.ToTable("auth_sessions", (string)null);
                 });
 
@@ -388,7 +525,8 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -400,7 +538,8 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("name");
 
                     b.Property<uint>("xmin")
                         .IsConcurrencyToken()
@@ -417,10 +556,12 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
 
                     b.Property<Guid?>("CareerId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("career_id");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -432,17 +573,21 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
 
                     b.Property<string>("FirstName")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("first_name");
 
                     b.Property<string>("LastName")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("last_name");
 
                     b.Property<string>("Phone")
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("phone");
 
                     b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
 
                     b.Property<uint>("xmin")
                         .IsConcurrencyToken()
@@ -452,6 +597,11 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CareerId");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
                     b.ToTable("profiles", (string)null);
                 });
 
@@ -459,7 +609,8 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -470,16 +621,22 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("description");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("name");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
 
                     b.Property<uint>("xmin")
                         .IsConcurrencyToken()
@@ -489,17 +646,22 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("programs", (string)null);
+                    b.ToTable("programs", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_programs_status", "status IN ('DRAFT', 'ACTIVE', 'INACTIVE')");
+                        });
                 });
 
             modelBuilder.Entity("U_VoluntApp_Core.Src.Domain.Entities.ProgramPeriod", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
 
                     b.Property<Guid>("AcademicPeriodId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("academic_period_id");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -510,7 +672,8 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                         .HasColumnName("deleted_at");
 
                     b.Property<Guid>("ProgramId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("program_id");
 
                     b.Property<uint>("xmin")
                         .IsConcurrencyToken()
@@ -520,6 +683,8 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AcademicPeriodId");
+
                     b.ToTable("program_periods", (string)null);
                 });
 
@@ -527,7 +692,8 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -538,27 +704,50 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                         .HasColumnName("deleted_at");
 
                     b.Property<Guid>("GrantedBy")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("granted_by");
 
                     b.Property<DateTime?>("RevokedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at");
 
                     b.Property<string>("Role")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("role");
 
                     b.Property<string>("Scope")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("scope");
 
                     b.Property<Guid?>("ScopeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("scope_id");
 
                     b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<DateTime?>("ValidFrom")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("valid_from");
 
                     b.Property<DateTime?>("ValidUntil")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("valid_until");
+
+                    b.Property<Guid?>("scope_activity_id")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("uuid")
+                        .HasColumnName("scope_activity_id")
+                        .HasComputedColumnSql("CASE WHEN scope = 'ACTIVITY' THEN scope_id END", true);
+
+                    b.Property<Guid?>("scope_program_id")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("uuid")
+                        .HasColumnName("scope_program_id")
+                        .HasComputedColumnSql("CASE WHEN scope = 'PROGRAM' THEN scope_id END", true);
 
                     b.Property<uint>("xmin")
                         .IsConcurrencyToken()
@@ -568,79 +757,131 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("role_assignments", (string)null);
+                    b.HasIndex("GrantedBy");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("scope_activity_id");
+
+                    b.HasIndex("scope_program_id");
+
+                    b.ToTable("role_assignments", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_role_assignments_role", "role IN ('ADMIN', 'PROGRAM_LEADER', 'OPERATIONAL_LEADER')");
+
+                            t.HasCheckConstraint("ck_role_assignments_scope", "scope IN ('GLOBAL', 'PROGRAM', 'ACTIVITY')");
+
+                            t.HasCheckConstraint("ck_role_assignments_scope_id", "(scope = 'GLOBAL') = (scope_id IS NULL)");
+                        });
                 });
 
             modelBuilder.Entity("U_VoluntApp_Core.Src.Infrastructure.Persistence.AppUser", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
 
                     b.Property<int>("AccessFailedCount")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("access_failed_count");
 
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("concurrency_stamp");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("email");
 
                     b.Property<bool>("EmailConfirmed")
-                        .HasColumnType("boolean");
+                        .HasColumnType("boolean")
+                        .HasColumnName("email_confirmed");
+
+                    b.Property<string>("InstitutionalEmail")
+                        .HasColumnType("text")
+                        .HasColumnName("institutional_email");
+
+                    b.Property<DateTime?>("InstitutionalEmailVerifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("institutional_email_verified_at");
 
                     b.Property<bool>("LockoutEnabled")
-                        .HasColumnType("boolean");
+                        .HasColumnType("boolean")
+                        .HasColumnName("lockout_enabled");
 
                     b.Property<DateTimeOffset?>("LockoutEnd")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lockout_end");
 
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("normalized_email");
 
                     b.Property<string>("NormalizedUserName")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("normalized_user_name");
 
                     b.Property<string>("PasswordHash")
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("password_hash");
 
                     b.Property<string>("PhoneNumber")
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("phone_number");
 
                     b.Property<bool>("PhoneNumberConfirmed")
-                        .HasColumnType("boolean");
+                        .HasColumnType("boolean")
+                        .HasColumnName("phone_number_confirmed");
 
                     b.Property<string>("SecurityStamp")
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("security_stamp");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("account_status");
+
+                    b.Property<DateTime?>("SuspendedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("suspended_at");
 
                     b.Property<bool>("TwoFactorEnabled")
-                        .HasColumnType("boolean");
+                        .HasColumnType("boolean")
+                        .HasColumnName("two_factor_enabled");
 
                     b.Property<string>("UserName")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("user_name");
 
                     b.HasKey("Id");
 
                     b.HasIndex("NormalizedEmail")
+                        .IsUnique()
                         .HasDatabaseName("EmailIndex");
 
                     b.HasIndex("NormalizedUserName")
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex");
 
-                    b.ToTable("users", (string)null);
+                    b.ToTable("users", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_users_account_status", "account_status IN ('PRE_REGISTERED', 'PENDING_VERIFICATION', 'PENDING_APPROVAL', 'ACTIVE', 'REJECTED', 'SUSPENDED')");
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<System.Guid>", b =>
@@ -648,8 +889,158 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                     b.HasOne("U_VoluntApp_Core.Src.Infrastructure.Persistence.AppUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("U_VoluntApp_Core.Src.Domain.Entities.AccountApprovalRequest", b =>
+                {
+                    b.HasOne("U_VoluntApp_Core.Src.Infrastructure.Persistence.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("ReviewedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("U_VoluntApp_Core.Src.Infrastructure.Persistence.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("U_VoluntApp_Core.Src.Domain.Entities.Activity", b =>
+                {
+                    b.HasOne("U_VoluntApp_Core.Src.Domain.Entities.AcademicPeriod", null)
+                        .WithMany()
+                        .HasForeignKey("AcademicPeriodId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("U_VoluntApp_Core.Src.Domain.Entities.Program", null)
+                        .WithMany()
+                        .HasForeignKey("ProgramId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("U_VoluntApp_Core.Src.Domain.Entities.ProgramPeriod", null)
+                        .WithMany()
+                        .HasForeignKey("ProgramId", "AcademicPeriodId")
+                        .HasPrincipalKey("ProgramId", "AcademicPeriodId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("U_VoluntApp_Core.Src.Domain.Entities.ActivityReschedule", b =>
+                {
+                    b.HasOne("U_VoluntApp_Core.Src.Domain.Entities.Activity", null)
+                        .WithMany()
+                        .HasForeignKey("ActivityId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("U_VoluntApp_Core.Src.Infrastructure.Persistence.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("U_VoluntApp_Core.Src.Domain.Entities.AdminGrantApproval", b =>
+                {
+                    b.HasOne("U_VoluntApp_Core.Src.Infrastructure.Persistence.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("AdminId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("U_VoluntApp_Core.Src.Domain.Entities.AdminGrantRequest", null)
+                        .WithMany()
+                        .HasForeignKey("RequestId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("U_VoluntApp_Core.Src.Domain.Entities.AdminGrantRequest", b =>
+                {
+                    b.HasOne("U_VoluntApp_Core.Src.Infrastructure.Persistence.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("BeneficiaryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("U_VoluntApp_Core.Src.Infrastructure.Persistence.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("RequestedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("U_VoluntApp_Core.Src.Domain.Entities.AuditEvent", b =>
+                {
+                    b.HasOne("U_VoluntApp_Core.Src.Infrastructure.Persistence.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("U_VoluntApp_Core.Src.Domain.Entities.AuthSession", b =>
+                {
+                    b.HasOne("U_VoluntApp_Core.Src.Infrastructure.Persistence.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("U_VoluntApp_Core.Src.Domain.Entities.Profile", b =>
+                {
+                    b.HasOne("U_VoluntApp_Core.Src.Domain.Entities.Career", null)
+                        .WithMany()
+                        .HasForeignKey("CareerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("U_VoluntApp_Core.Src.Infrastructure.Persistence.AppUser", null)
+                        .WithOne()
+                        .HasForeignKey("U_VoluntApp_Core.Src.Domain.Entities.Profile", "UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("U_VoluntApp_Core.Src.Domain.Entities.ProgramPeriod", b =>
+                {
+                    b.HasOne("U_VoluntApp_Core.Src.Domain.Entities.AcademicPeriod", null)
+                        .WithMany()
+                        .HasForeignKey("AcademicPeriodId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("U_VoluntApp_Core.Src.Domain.Entities.Program", null)
+                        .WithMany()
+                        .HasForeignKey("ProgramId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("U_VoluntApp_Core.Src.Domain.Entities.RoleAssignment", b =>
+                {
+                    b.HasOne("U_VoluntApp_Core.Src.Infrastructure.Persistence.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("GrantedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("U_VoluntApp_Core.Src.Infrastructure.Persistence.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("U_VoluntApp_Core.Src.Domain.Entities.Activity", null)
+                        .WithMany()
+                        .HasForeignKey("scope_activity_id")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("U_VoluntApp_Core.Src.Domain.Entities.Program", null)
+                        .WithMany()
+                        .HasForeignKey("scope_program_id")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 #pragma warning restore 612, 618
         }

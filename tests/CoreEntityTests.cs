@@ -40,6 +40,7 @@ public class CoreEntityTests
 
         activity.Cancel("Cierre del campus");
         Assert.Equal(ActivityStatus.CANCELLED, activity.Status);
+        Assert.Equal("Cierre del campus", activity.CancellationReason);
         Assert.Throws<InvalidOperationException>(activity.Publish);
     }
 }
