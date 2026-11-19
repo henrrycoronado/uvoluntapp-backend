@@ -1,6 +1,7 @@
 using Uvoluntapp.Backend.Application.DTOs.Administration;
 using Uvoluntapp.Backend.Application.DTOs.Common;
 using Uvoluntapp.Backend.Application.Exceptions.Common;
+using Uvoluntapp.Backend.Application.Interfaces.Activities;
 using Uvoluntapp.Backend.Application.Interfaces.Administration;
 using Uvoluntapp.Backend.Application.Interfaces.Common;
 using Uvoluntapp.Backend.Application.Services.Audit;
@@ -20,6 +21,7 @@ public sealed class RoleAssignmentService(
     AdminAccessGuard guard,
     IRoleAssignmentStore roles,
     IAccountDirectory accounts,
+    IActivityStore activities,
     AuditRecorder audit,
     IUnitOfWork unitOfWork)
 {
@@ -90,7 +92,8 @@ public sealed class RoleAssignmentService(
                 "Un nuevo ADMIN requiere una solicitud de promoción con doble aprobación.");
         }
 
-        if (!actor.IsGlobalAdmin && !LeaderAssignmentPolicy.CanAssign(actor.Assignments, role, scope, scopeId, actor.AtUtc))
+        var activityProgramId = await DelegationTargetAsync(role, scope, scopeId, cancellationToken);
+        if (!actor.IsGlobalAdmin && !LeaderAssignmentPolicy.CanAssign(actor.Assignments, role, scope, scopeId, activityProgramId, actor.AtUtc))
         {
             throw new ForbiddenException("Solo puedes asignar líderes operativos en los programas que lideras.");
         }
@@ -111,6 +114,13 @@ public sealed class RoleAssignmentService(
         if (existing.Any(a => a.IsActiveAt(actor.AtUtc) && a.Role == role && a.Scope == scope && a.ScopeId == scopeId))
         {
             throw new ConflictException("La persona ya tiene esa asignación vigente.");
+        }
+
+        // Un líder operativo solo se delega a actividades del programa al que pertenece.
+        if (role == AssignedRole.OPERATIONAL_LEADER && scope == RoleScope.ACTIVITY
+            && !existing.Any(a => a.IsActiveAt(actor.AtUtc) && a.Role == AssignedRole.OPERATIONAL_LEADER && a.Scope == RoleScope.PROGRAM && a.ScopeId == activityProgramId))
+        {
+            throw new DomainRuleViolationException("Primero asigna a la persona como líder operativo del programa de esa actividad.");
         }
 
         var assignment = RoleAssignment.Assign(
@@ -137,7 +147,13 @@ public sealed class RoleAssignmentService(
         var assignment = await roles.FindAsync(assignmentId, cancellationToken)
             ?? throw new NotFoundException("La asignación no existe.");
 
-        if (!actor.IsGlobalAdmin && !LeaderAssignmentPolicy.CanRevoke(actor.Assignments, assignment, actor.AtUtc))
+        Guid? activityProgramId = null;
+        if (assignment.Scope == RoleScope.ACTIVITY && assignment.ScopeId is { } activityId)
+        {
+            activityProgramId = (await activities.FindAsync(activityId, cancellationToken))?.ProgramId;
+        }
+
+        if (!actor.IsGlobalAdmin && !LeaderAssignmentPolicy.CanRevoke(actor.Assignments, assignment, activityProgramId, actor.AtUtc))
         {
             throw new ForbiddenException("Solo puedes revocar líderes operativos de los programas que lideras.");
         }
@@ -157,6 +173,41 @@ public sealed class RoleAssignmentService(
         await audit.RecordRoleRevokedAsync(actorId, assignment, actor.AtUtc, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return RoleAssignmentResponse.From(assignment);
+    }
+
+    /// <summary>
+    /// Reglas de la delegación por actividad (SCRUM-122): un líder de programa con ámbito de actividad
+    /// solo se asigna a actividades libres; un líder operativo, solo a actividades de un programa.
+    /// </summary>
+    /// <param name="role">Rol a asignar.</param>
+    /// <param name="scope">Ámbito.</param>
+    /// <param name="scopeId">Programa o actividad.</param>
+    /// <param name="cancellationToken">Cancelación.</param>
+    /// <returns>El programa de la actividad, si el ámbito es ACTIVITY.</returns>
+    private async Task<Guid?> DelegationTargetAsync(AssignedRole role, RoleScope scope, Guid? scopeId, CancellationToken cancellationToken)
+    {
+        if (scope != RoleScope.ACTIVITY || scopeId is not { } activityId)
+        {
+            return null;
+        }
+
+        var activity = await activities.FindAsync(activityId, cancellationToken);
+        if (activity is null || activity.DeletedAt is not null)
+        {
+            throw new NotFoundException("La actividad no existe.");
+        }
+
+        if (role == AssignedRole.PROGRAM_LEADER && activity.ProgramId is not null)
+        {
+            throw new DomainRuleViolationException("Un líder de programa se asigna a actividades libres; las de un programa las gestiona por su programa.");
+        }
+
+        if (role == AssignedRole.OPERATIONAL_LEADER && activity.ProgramId is null)
+        {
+            throw new DomainRuleViolationException("Un líder operativo se delega solo a actividades de un programa.");
+        }
+
+        return activity.ProgramId;
     }
 
     private async Task<ActorAccess> RequireActiveAsync(Guid actorId, CancellationToken cancellationToken)

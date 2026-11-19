@@ -72,6 +72,28 @@ public sealed class RoleAssignmentStore(AppDbContext db) : IRoleAssignmentStore
         return db.RoleAssignments.CountAsync(isActiveAdmin, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<RoleAssignment>> ListActiveForScopesAsync(
+        IReadOnlyCollection<Guid> programIds,
+        IReadOnlyCollection<Guid> activityIds,
+        DateTime atUtc,
+        CancellationToken cancellationToken = default)
+    {
+        if (programIds.Count == 0 && activityIds.Count == 0)
+        {
+            return [];
+        }
+
+        return await db.RoleAssignments
+            .Where(r => r.Role != AssignedRole.ADMIN
+                && r.RevokedAt == null
+                && (r.ValidFrom == null || r.ValidFrom <= atUtc)
+                && (r.ValidUntil == null || r.ValidUntil > atUtc)
+                && r.ScopeId != null
+                && ((r.Scope == RoleScope.PROGRAM && programIds.Contains(r.ScopeId.Value))
+                    || (r.Scope == RoleScope.ACTIVITY && activityIds.Contains(r.ScopeId.Value))))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<Guid>> ListActiveAdminUserIdsAsync(DateTime atUtc, CancellationToken cancellationToken = default) =>
         await db.RoleAssignments
             .Where(r => r.Role == AssignedRole.ADMIN
