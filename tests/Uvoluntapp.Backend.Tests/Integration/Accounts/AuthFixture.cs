@@ -32,6 +32,8 @@ public sealed class AuthFixture : IAsyncLifetime
 
     public string ConnectionString { get; private set; } = string.Empty;
 
+    public string RedisConnection { get; private set; } = string.Empty;
+
     public IConnectionMultiplexer Redis => _host.Services.GetRequiredService<IConnectionMultiplexer>();
 
     public HttpClient Client()
@@ -75,6 +77,7 @@ public sealed class AuthFixture : IAsyncLifetime
             throw new InvalidOperationException("Configura M1_TEST_POSTGRES y M1_TEST_REDIS juntos.");
         }
 
+        RedisConnection = redisConnection!;
         await using var db = Context();
         await db.Database.MigrateAsync();
         _host = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
