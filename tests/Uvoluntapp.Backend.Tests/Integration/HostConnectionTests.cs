@@ -51,5 +51,6 @@ public sealed class HostConnectionTests : IDisposable
     {
         Environment.SetEnvironmentVariable(DefaultKey, defaultValue);
         Environment.SetEnvironmentVariable(EnvironmentKey, environmentValue);
+        Environment.SetEnvironmentVariable("DATABASE_AUTO_MIGRATE", "false");
     }
 }

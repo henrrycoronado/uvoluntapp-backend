@@ -12,11 +12,12 @@ public sealed class InitialMigrationTests(PostgresFixture fixture) : IClassFixtu
     [
         "users", "user_logins", "profiles", "careers", "auth_sessions", "account_approval_requests",
         "role_assignments", "admin_grant_requests", "admin_grant_approvals", "academic_periods",
-        "programs", "program_periods", "activities", "activity_reschedules", "audit_events"
+        "programs", "program_periods", "activities", "activity_reschedules", "audit_events",
+        "password_recovery_tokens", "pending_email_verifications"
     ];
 
     [Fact]
-    public async Task InitialCreateCreatesExactlyTheFifteenDomainTables()
+    public async Task InitialCreateCreatesTheDomainTablesAndTheTwoSupportTables()
     {
         await using var context = fixture.CreateContext();
         var tables = await context.Database.SqlQueryRaw<string>("""

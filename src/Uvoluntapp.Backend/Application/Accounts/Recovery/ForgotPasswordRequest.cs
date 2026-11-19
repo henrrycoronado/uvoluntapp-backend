@@ -2,5 +2,15 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Uvoluntapp.Backend.Application.Accounts.Recovery;
 
-public sealed record ForgotPasswordRequest(
-    [property: Required, EmailAddress] string Email);
+public sealed record ForgotPasswordRequest
+{
+    public ForgotPasswordRequest()
+    {
+    }
+
+    public ForgotPasswordRequest(string email) => Email = email;
+
+    [Required]
+    [EmailAddress]
+    public string Email { get; init; } = string.Empty;
+}

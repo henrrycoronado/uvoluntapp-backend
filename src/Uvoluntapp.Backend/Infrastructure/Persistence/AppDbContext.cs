@@ -2,16 +2,18 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Uvoluntapp.Backend.Application.Common;
 using Uvoluntapp.Backend.Domain;
 using Uvoluntapp.Backend.Domain.Accounts;
 using Uvoluntapp.Backend.Domain.Activities;
 using Uvoluntapp.Backend.Domain.Programs;
 using Uvoluntapp.Backend.Infrastructure.Identity;
+using Uvoluntapp.Backend.Infrastructure.Records;
 
 namespace Uvoluntapp.Backend.Infrastructure.Persistence;
 
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
-    : IdentityDbContext<AppUser, IdentityRole<Guid>, Guid>(options)
+    : IdentityDbContext<AppUser, IdentityRole<Guid>, Guid>(options), IUnitOfWork
 {
     public DbSet<Profile> Profiles => Set<Profile>();
 
@@ -38,6 +40,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<ActivityReschedule> ActivityReschedules => Set<ActivityReschedule>();
 
     public DbSet<AuditEvent> AuditEvents => Set<AuditEvent>();
+
+    public DbSet<PasswordRecoveryToken> PasswordRecoveryTokens => Set<PasswordRecoveryToken>();
+
+    public DbSet<PendingEmailVerificationRecord> PendingEmailVerifications => Set<PendingEmailVerificationRecord>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
@@ -73,6 +79,20 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             session.ToTable("auth_sessions");
             session.HasOne<AppUser>().WithMany().HasForeignKey(s => s.UserId);
             session.HasIndex(s => s.RefreshTokenHash).IsUnique();
+        });
+        model.Entity<PasswordRecoveryToken>(token =>
+        {
+            token.ToTable("password_recovery_tokens");
+            token.HasKey(t => t.Id);
+            token.HasIndex(t => t.TokenHash).IsUnique();
+            token.HasOne<AppUser>().WithMany().HasForeignKey(t => t.UserId);
+        });
+        model.Entity<PendingEmailVerificationRecord>(pending =>
+        {
+            pending.ToTable("pending_email_verifications");
+            pending.HasKey(p => p.Id);
+            pending.HasIndex(p => new { p.UserId, p.Purpose }).IsUnique();
+            pending.HasOne<AppUser>().WithMany().HasForeignKey(p => p.UserId);
         });
         model.Entity<AccountApprovalRequest>(request =>
         {

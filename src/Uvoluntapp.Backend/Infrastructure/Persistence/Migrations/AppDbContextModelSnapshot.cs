@@ -47,45 +47,6 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                     b.ToTable("user_logins", (string)null);
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Programs.AcademicPeriod", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("deleted_at");
-
-                    b.Property<DateTime>("EndsAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("end_date");
-
-                    b.Property<string>("Label")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("label");
-
-                    b.Property<DateTime>("StartsAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("start_date");
-
-                    b.Property<uint>("xmin")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("xid")
-                        .HasColumnName("xmin");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("academic_periods", (string)null);
-                });
-
             modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.AccountApprovalRequest", b =>
                 {
                     b.Property<Guid>("Id")
@@ -156,6 +117,356 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                     b.ToTable("account_approval_requests", null, t =>
                         {
                             t.HasCheckConstraint("ck_account_approval_requests_status", "status IN ('PENDING_APPROVAL', 'ACTIVE', 'REJECTED')");
+                        });
+                });
+
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.AdminGrantApproval", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AdminId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("approver_id");
+
+                    b.Property<DateTime>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("approved_at");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<Guid>("RequestId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("request_id");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdminId");
+
+                    b.HasIndex("RequestId", "AdminId")
+                        .IsUnique();
+
+                    b.ToTable("admin_grant_approvals", (string)null);
+                });
+
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.AdminGrantRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("BeneficiaryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("beneficiary_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("RejectionReason")
+                        .HasColumnType("text")
+                        .HasColumnName("rejection_reason");
+
+                    b.Property<Guid>("RequestedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("requested_by");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolved_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BeneficiaryId");
+
+                    b.HasIndex("RequestedBy");
+
+                    b.ToTable("admin_grant_requests", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_admin_grant_requests_status", "status IN ('PENDING', 'APPROVED', 'REJECTED')");
+                        });
+                });
+
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.AuthSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("RefreshTokenHash")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("refresh_token_hash");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RefreshTokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("auth_sessions", (string)null);
+                });
+
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.Career", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("careers", (string)null);
+                });
+
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.PasswordRecoveryToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("token_hash");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("used_at");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("password_recovery_tokens", (string)null);
+                });
+
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.Profile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("CareerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("career_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("first_name");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("last_name");
+
+                    b.Property<string>("Phone")
+                        .HasColumnType("text")
+                        .HasColumnName("phone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CareerId");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("profiles", (string)null);
+                });
+
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.RoleAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<Guid>("GrantedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("granted_by");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("role");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("scope");
+
+                    b.Property<Guid?>("ScopeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("scope_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<DateTime?>("ValidFrom")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("valid_from");
+
+                    b.Property<DateTime?>("ValidUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("valid_until");
+
+                    b.Property<Guid?>("scope_activity_id")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("uuid")
+                        .HasColumnName("scope_activity_id")
+                        .HasComputedColumnSql("CASE WHEN scope = 'ACTIVITY' THEN scope_id END", true);
+
+                    b.Property<Guid?>("scope_program_id")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("uuid")
+                        .HasColumnName("scope_program_id")
+                        .HasComputedColumnSql("CASE WHEN scope = 'PROGRAM' THEN scope_id END", true);
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GrantedBy");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("scope_activity_id");
+
+                    b.HasIndex("scope_program_id");
+
+                    b.ToTable("role_assignments", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_role_assignments_role", "role IN ('ADMIN', 'PROGRAM_LEADER', 'OPERATIONAL_LEADER')");
+
+                            t.HasCheckConstraint("ck_role_assignments_scope", "scope IN ('GLOBAL', 'PROGRAM', 'ACTIVITY')");
+
+                            t.HasCheckConstraint("ck_role_assignments_scope_id", "(scope = 'GLOBAL') = (scope_id IS NULL)");
                         });
                 });
 
@@ -325,103 +636,6 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.AdminGrantApproval", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid>("AdminId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("approver_id");
-
-                    b.Property<DateTime>("ApprovedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("approved_at");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("deleted_at");
-
-                    b.Property<Guid>("RequestId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("request_id");
-
-                    b.Property<uint>("xmin")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("xid")
-                        .HasColumnName("xmin");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AdminId");
-
-                    b.HasIndex("RequestId", "AdminId")
-                        .IsUnique();
-
-                    b.ToTable("admin_grant_approvals", (string)null);
-                });
-
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.AdminGrantRequest", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid>("BeneficiaryId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("beneficiary_id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("deleted_at");
-
-                    b.Property<string>("RejectionReason")
-                        .HasColumnType("text")
-                        .HasColumnName("rejection_reason");
-
-                    b.Property<Guid>("RequestedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("requested_by");
-
-                    b.Property<DateTime?>("ResolvedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("resolved_at");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("status");
-
-                    b.Property<uint>("xmin")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("xid")
-                        .HasColumnName("xmin");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BeneficiaryId");
-
-                    b.HasIndex("RequestedBy");
-
-                    b.ToTable("admin_grant_requests", null, t =>
-                        {
-                            t.HasCheckConstraint("ck_admin_grant_requests_status", "status IN ('PENDING', 'APPROVED', 'REJECTED')");
-                        });
-                });
-
             modelBuilder.Entity("Uvoluntapp.Backend.Domain.AuditEvent", b =>
                 {
                     b.Property<Guid>("Id")
@@ -473,7 +687,7 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                     b.ToTable("audit_events", (string)null);
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.AuthSession", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Programs.AcademicPeriod", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -488,22 +702,18 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("deleted_at");
 
-                    b.Property<DateTime>("ExpiresAt")
+                    b.Property<DateTime>("EndsAt")
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("expires_at");
+                        .HasColumnName("end_date");
 
-                    b.Property<string>("RefreshTokenHash")
+                    b.Property<string>("Label")
                         .IsRequired()
                         .HasColumnType("text")
-                        .HasColumnName("refresh_token_hash");
+                        .HasColumnName("label");
 
-                    b.Property<DateTime?>("RevokedAt")
+                    b.Property<DateTime>("StartsAt")
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("revoked_at");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("user_id");
+                        .HasColumnName("start_date");
 
                     b.Property<uint>("xmin")
                         .IsConcurrencyToken()
@@ -513,20 +723,19 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RefreshTokenHash")
-                        .IsUnique();
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("auth_sessions", (string)null);
+                    b.ToTable("academic_periods", (string)null);
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.Career", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Programs.ProgramPeriod", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<Guid>("AcademicPeriodId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("academic_period_id");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -536,10 +745,9 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("deleted_at");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("name");
+                    b.Property<Guid>("ProgramId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("program_id");
 
                     b.Property<uint>("xmin")
                         .IsConcurrencyToken()
@@ -549,60 +757,9 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("careers", (string)null);
-                });
+                    b.HasIndex("AcademicPeriodId");
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.Profile", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid?>("CareerId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("career_id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("deleted_at");
-
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("first_name");
-
-                    b.Property<string>("LastName")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("last_name");
-
-                    b.Property<string>("Phone")
-                        .HasColumnType("text")
-                        .HasColumnName("phone");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("user_id");
-
-                    b.Property<uint>("xmin")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("xid")
-                        .HasColumnName("xmin");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CareerId");
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
-
-                    b.ToTable("profiles", (string)null);
+                    b.ToTable("program_periods", (string)null);
                 });
 
             modelBuilder.Entity("Uvoluntapp.Backend.Domain.Programs.VolunteerProgram", b =>
@@ -649,129 +806,6 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                     b.ToTable("programs", null, t =>
                         {
                             t.HasCheckConstraint("ck_programs_status", "status IN ('DRAFT', 'ACTIVE', 'INACTIVE')");
-                        });
-                });
-
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Programs.ProgramPeriod", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid>("AcademicPeriodId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("academic_period_id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("deleted_at");
-
-                    b.Property<Guid>("ProgramId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("program_id");
-
-                    b.Property<uint>("xmin")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("xid")
-                        .HasColumnName("xmin");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AcademicPeriodId");
-
-                    b.ToTable("program_periods", (string)null);
-                });
-
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.RoleAssignment", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("deleted_at");
-
-                    b.Property<Guid>("GrantedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("granted_by");
-
-                    b.Property<DateTime?>("RevokedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("revoked_at");
-
-                    b.Property<string>("Role")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("role");
-
-                    b.Property<string>("Scope")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("scope");
-
-                    b.Property<Guid?>("ScopeId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("scope_id");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("user_id");
-
-                    b.Property<DateTime?>("ValidFrom")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("valid_from");
-
-                    b.Property<DateTime?>("ValidUntil")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("valid_until");
-
-                    b.Property<Guid?>("scope_activity_id")
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("uuid")
-                        .HasColumnName("scope_activity_id")
-                        .HasComputedColumnSql("CASE WHEN scope = 'ACTIVITY' THEN scope_id END", true);
-
-                    b.Property<Guid?>("scope_program_id")
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("uuid")
-                        .HasColumnName("scope_program_id")
-                        .HasComputedColumnSql("CASE WHEN scope = 'PROGRAM' THEN scope_id END", true);
-
-                    b.Property<uint>("xmin")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("xid")
-                        .HasColumnName("xmin");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("GrantedBy");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("scope_activity_id");
-
-                    b.HasIndex("scope_program_id");
-
-                    b.ToTable("role_assignments", null, t =>
-                        {
-                            t.HasCheckConstraint("ck_role_assignments_role", "role IN ('ADMIN', 'PROGRAM_LEADER', 'OPERATIONAL_LEADER')");
-
-                            t.HasCheckConstraint("ck_role_assignments_scope", "scope IN ('GLOBAL', 'PROGRAM', 'ACTIVITY')");
-
-                            t.HasCheckConstraint("ck_role_assignments_scope_id", "(scope = 'GLOBAL') = (scope_id IS NULL)");
                         });
                 });
 
@@ -884,6 +918,59 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Uvoluntapp.Backend.Infrastructure.Records.PendingEmailVerificationRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempts");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("code_hash");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("email");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<bool>("IsUsed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_used");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("purpose");
+
+                    b.Property<DateTimeOffset>("RequestedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("requested_at");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "Purpose")
+                        .IsUnique();
+
+                    b.ToTable("pending_email_verifications", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_pending_email_verifications_purpose", "purpose IN ('EMAIL_CHANGE', 'INSTITUTIONAL_EMAIL')");
+                        });
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<System.Guid>", b =>
                 {
                     b.HasOne("Uvoluntapp.Backend.Infrastructure.Identity.AppUser", null)
@@ -905,6 +992,93 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.AdminGrantApproval", b =>
+                {
+                    b.HasOne("Uvoluntapp.Backend.Infrastructure.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("AdminId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Uvoluntapp.Backend.Domain.Accounts.AdminGrantRequest", null)
+                        .WithMany()
+                        .HasForeignKey("RequestId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.AdminGrantRequest", b =>
+                {
+                    b.HasOne("Uvoluntapp.Backend.Infrastructure.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("BeneficiaryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Uvoluntapp.Backend.Infrastructure.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("RequestedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.AuthSession", b =>
+                {
+                    b.HasOne("Uvoluntapp.Backend.Infrastructure.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.PasswordRecoveryToken", b =>
+                {
+                    b.HasOne("Uvoluntapp.Backend.Infrastructure.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.Profile", b =>
+                {
+                    b.HasOne("Uvoluntapp.Backend.Domain.Accounts.Career", null)
+                        .WithMany()
+                        .HasForeignKey("CareerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Uvoluntapp.Backend.Infrastructure.Identity.AppUser", null)
+                        .WithOne()
+                        .HasForeignKey("Uvoluntapp.Backend.Domain.Accounts.Profile", "UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.RoleAssignment", b =>
+                {
+                    b.HasOne("Uvoluntapp.Backend.Infrastructure.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("GrantedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Uvoluntapp.Backend.Infrastructure.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Uvoluntapp.Backend.Domain.Activities.Activity", null)
+                        .WithMany()
+                        .HasForeignKey("scope_activity_id")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Uvoluntapp.Backend.Domain.Programs.VolunteerProgram", null)
+                        .WithMany()
+                        .HasForeignKey("scope_program_id")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("Uvoluntapp.Backend.Domain.Activities.Activity", b =>
@@ -942,65 +1116,12 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.AdminGrantApproval", b =>
-                {
-                    b.HasOne("Uvoluntapp.Backend.Infrastructure.Identity.AppUser", null)
-                        .WithMany()
-                        .HasForeignKey("AdminId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Uvoluntapp.Backend.Domain.Accounts.AdminGrantRequest", null)
-                        .WithMany()
-                        .HasForeignKey("RequestId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.AdminGrantRequest", b =>
-                {
-                    b.HasOne("Uvoluntapp.Backend.Infrastructure.Identity.AppUser", null)
-                        .WithMany()
-                        .HasForeignKey("BeneficiaryId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Uvoluntapp.Backend.Infrastructure.Identity.AppUser", null)
-                        .WithMany()
-                        .HasForeignKey("RequestedBy")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("Uvoluntapp.Backend.Domain.AuditEvent", b =>
                 {
                     b.HasOne("Uvoluntapp.Backend.Infrastructure.Identity.AppUser", null)
                         .WithMany()
                         .HasForeignKey("ActorId")
                         .OnDelete(DeleteBehavior.Restrict);
-                });
-
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.AuthSession", b =>
-                {
-                    b.HasOne("Uvoluntapp.Backend.Infrastructure.Identity.AppUser", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.Profile", b =>
-                {
-                    b.HasOne("Uvoluntapp.Backend.Domain.Accounts.Career", null)
-                        .WithMany()
-                        .HasForeignKey("CareerId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Uvoluntapp.Backend.Infrastructure.Identity.AppUser", null)
-                        .WithOne()
-                        .HasForeignKey("Uvoluntapp.Backend.Domain.Accounts.Profile", "UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("Uvoluntapp.Backend.Domain.Programs.ProgramPeriod", b =>
@@ -1018,29 +1139,13 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Accounts.RoleAssignment", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Infrastructure.Records.PendingEmailVerificationRecord", b =>
                 {
-                    b.HasOne("Uvoluntapp.Backend.Infrastructure.Identity.AppUser", null)
-                        .WithMany()
-                        .HasForeignKey("GrantedBy")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("Uvoluntapp.Backend.Infrastructure.Identity.AppUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("Uvoluntapp.Backend.Domain.Activities.Activity", null)
-                        .WithMany()
-                        .HasForeignKey("scope_activity_id")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Uvoluntapp.Backend.Domain.Programs.VolunteerProgram", null)
-                        .WithMany()
-                        .HasForeignKey("scope_program_id")
-                        .OnDelete(DeleteBehavior.Restrict);
                 });
 #pragma warning restore 612, 618
         }
