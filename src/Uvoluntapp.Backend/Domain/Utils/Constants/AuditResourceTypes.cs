@@ -1,6 +1,3 @@
-using Uvoluntapp.Backend.Domain.Entities.Accounts;
-using Uvoluntapp.Backend.Domain.Entities.Activities;
-
 namespace Uvoluntapp.Backend.Domain.Utils.Constants;
 
 public static class AuditResourceTypes

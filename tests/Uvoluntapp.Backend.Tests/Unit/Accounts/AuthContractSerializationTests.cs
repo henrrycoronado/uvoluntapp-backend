@@ -1,12 +1,9 @@
 using System.Linq;
 using System.Text.Json;
 using System;
-
+using Uvoluntapp.Backend.Application.DTOs.Accounts;
 using Xunit;
 
-using Uvoluntapp.Backend.Application.DTOs.Accounts;
-using Uvoluntapp.Backend.Application.Services.Administration;
-using Uvoluntapp.Backend.Domain.Utils.Enums;
 namespace Uvoluntapp.Backend.Tests.Unit.Accounts;
 
 public class AuthContractSerializationTests
@@ -27,7 +24,7 @@ public class AuthContractSerializationTests
         using var document = JsonDocument.Parse(JsonSerializer.Serialize(request, _webOptions));
 
         Assert.Equal(
-            new[] { "email", "firstName", "lastName", "password" },
+            new[] { "email", "firstName", "lastName", "password", "phone" },
             document.RootElement.EnumerateObject().Select(property => property.Name).OrderBy(name => name));
     }
 

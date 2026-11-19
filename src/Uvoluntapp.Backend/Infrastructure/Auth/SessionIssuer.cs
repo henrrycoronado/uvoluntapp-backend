@@ -1,7 +1,6 @@
 using Uvoluntapp.Backend.Application.DTOs.Accounts;
 using Uvoluntapp.Backend.Application.Interfaces.Accounts;
 using Uvoluntapp.Backend.Domain.Entities.Accounts;
-using Uvoluntapp.Backend.Domain.Entities.Common;
 using Uvoluntapp.Backend.Infrastructure.Persistence;
 
 namespace Uvoluntapp.Backend.Infrastructure.Auth;

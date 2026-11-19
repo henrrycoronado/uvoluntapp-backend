@@ -1,8 +1,7 @@
 using System;
-
+using Uvoluntapp.Backend.Domain.Entities.Accounts;
 using Xunit;
 
-using Uvoluntapp.Backend.Domain.Entities.Accounts;
 namespace Uvoluntapp.Backend.Tests.Unit.Accounts.Suspension;
 
 public class AuthSessionTests

@@ -10,5 +10,6 @@ public interface IRecoveryAccountStore
 
     Task<PasswordRecoveryToken?> FindTokenAsync(string tokenHash, CancellationToken cancellationToken);
 
-    Task SetPasswordAsync(Guid userId, string newPassword, CancellationToken cancellationToken);
+    // Reemplaza la contraseña, revoca todas las sesiones activas y audita el cambio.
+    Task SetPasswordAsync(Guid userId, string newPassword, DateTime utcNow, CancellationToken cancellationToken);
 }

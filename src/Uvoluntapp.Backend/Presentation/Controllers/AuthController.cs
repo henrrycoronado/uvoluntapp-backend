@@ -64,6 +64,14 @@ public sealed class AuthController(
         return new MessageResponse { Message = "Solicitud de aprobación creada." };
     }
 
+    [HttpPost("reapply")]
+    [AllowAnonymous]
+    public async Task<MessageResponse> Reapply(ReapplyRequest request, CancellationToken cancellationToken)
+    {
+        await registration.ReapplyAsync(request, ClientIp(), cancellationToken);
+        return new MessageResponse { Message = "Enviamos tu nueva solicitud. Un administrador la revisará." };
+    }
+
     [HttpPost("login")]
     [AllowAnonymous]
     public Task<TokenResponse> Login(LoginRequest request, CancellationToken cancellationToken) =>

@@ -1,14 +1,10 @@
 using System.Collections.Generic;
 using System.Text.Json.Nodes;
 using System;
-
-using Xunit;
-
-using Uvoluntapp.Backend.Application.Services.Administration;
-using Uvoluntapp.Backend.Domain.Entities.Accounts;
-using Uvoluntapp.Backend.Domain.Entities.Activities;
 using Uvoluntapp.Backend.Domain.Entities.Audit;
 using Uvoluntapp.Backend.Domain.Utils.Constants;
+using Xunit;
+
 namespace Uvoluntapp.Backend.Tests.Unit.Audit;
 
 public class AuditEventTests

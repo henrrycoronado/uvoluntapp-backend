@@ -1,5 +1,3 @@
-using Uvoluntapp.Backend.Domain.Utils.Enums;
-
 namespace Uvoluntapp.Backend.Application.DTOs.Administration;
 
 public sealed record UserDetailResponse(

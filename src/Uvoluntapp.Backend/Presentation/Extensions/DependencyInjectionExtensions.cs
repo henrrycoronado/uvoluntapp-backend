@@ -86,6 +86,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<AccountSuspensionService>();
         services.AddScoped<AccountApprovalService>();
         services.AddScoped<RecoveryService>();
+        services.AddSingleton<IWebLinks, WebLinks>();
         services.AddScoped<GoogleAuthService>();
         services.AddScoped<RoleAssignmentService>();
         services.AddScoped<AdminGrantService>();

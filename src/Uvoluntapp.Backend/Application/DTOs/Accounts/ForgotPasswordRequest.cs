@@ -1,7 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 
-using Uvoluntapp.Backend.Domain.Entities.Accounts;
-
 namespace Uvoluntapp.Backend.Application.DTOs.Accounts;
 
 public sealed record ForgotPasswordRequest

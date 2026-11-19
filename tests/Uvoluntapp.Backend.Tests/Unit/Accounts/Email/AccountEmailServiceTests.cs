@@ -1,13 +1,11 @@
 using System.Threading.Tasks;
 using System;
-
-using Xunit;
-
 using Uvoluntapp.Backend.Application.Exceptions.Accounts;
 using Uvoluntapp.Backend.Application.Services.Accounts;
-using Uvoluntapp.Backend.Application.Services.Administration;
 using Uvoluntapp.Backend.Domain.Entities.Accounts;
 using Uvoluntapp.Backend.Domain.Utils.Enums;
+using Xunit;
+
 namespace Uvoluntapp.Backend.Tests.Unit.Accounts.Email;
 
 public class AccountEmailServiceTests

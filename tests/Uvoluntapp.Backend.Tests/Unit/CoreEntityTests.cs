@@ -1,10 +1,9 @@
 using System;
-
-using Xunit;
-
 using Uvoluntapp.Backend.Domain.Entities.Activities;
 using Uvoluntapp.Backend.Domain.Entities.Programs;
 using Uvoluntapp.Backend.Domain.Utils.Enums;
+using Xunit;
+
 namespace Uvoluntapp.Backend.Tests.Unit;
 
 public class CoreEntityTests
