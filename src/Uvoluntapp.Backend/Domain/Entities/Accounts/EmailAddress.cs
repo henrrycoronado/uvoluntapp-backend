@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-
 using Uvoluntapp.Backend.Domain.Utils.Constants;
 
 namespace Uvoluntapp.Backend.Domain.Entities.Accounts;

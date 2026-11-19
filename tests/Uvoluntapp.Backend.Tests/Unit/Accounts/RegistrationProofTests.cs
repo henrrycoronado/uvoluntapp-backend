@@ -1,12 +1,10 @@
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Net.Http.Headers;
-
+using Uvoluntapp.Backend.Application.Exceptions.Accounts;
+using Uvoluntapp.Backend.Presentation.Helpers;
 using Xunit;
 
-using Uvoluntapp.Backend.Application.Exceptions.Accounts;
-using Uvoluntapp.Backend.Application.Services.Administration;
-using Uvoluntapp.Backend.Presentation.Helpers;
 namespace Uvoluntapp.Backend.Tests.Unit.Accounts;
 
 public class RegistrationProofTests

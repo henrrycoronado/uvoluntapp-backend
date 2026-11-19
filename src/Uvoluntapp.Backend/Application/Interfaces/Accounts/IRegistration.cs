@@ -11,4 +11,6 @@ public interface IRegistration
     Task<VerifyOtpResponse> VerifyAsync(VerifyOtpRequest request, CancellationToken cancellationToken);
 
     Task CompleteAsync(CompleteRegistrationRequest request, CancellationToken cancellationToken);
+
+    Task ReapplyAsync(ReapplyRequest request, string ip, CancellationToken cancellationToken);
 }

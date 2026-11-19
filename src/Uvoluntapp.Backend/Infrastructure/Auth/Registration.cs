@@ -4,9 +4,11 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Uvoluntapp.Backend.Application.DTOs.Accounts;
 using Uvoluntapp.Backend.Application.Exceptions.Accounts;
 using Uvoluntapp.Backend.Application.Interfaces.Accounts;
+using Uvoluntapp.Backend.Application.Interfaces.Common;
 using Uvoluntapp.Backend.Application.Services.Accounts;
 using Uvoluntapp.Backend.Domain.Entities.Accounts;
-using Uvoluntapp.Backend.Domain.Entities.Common;
+using Uvoluntapp.Backend.Domain.Entities.Audit;
+using Uvoluntapp.Backend.Domain.Utils.Constants;
 using Uvoluntapp.Backend.Domain.Utils.Enums;
 using Uvoluntapp.Backend.Infrastructure.Identity;
 using Uvoluntapp.Backend.Infrastructure.Persistence;
@@ -19,6 +21,7 @@ public sealed class Registration(
     AccountRateLimiter limits,
     RegistrationCodes codes,
     IEmailSender mail,
+    IWebLinks links,
     SessionTokens tokens,
     TimeProvider clock,
     ILogger<Registration> logger) : IRegistration
@@ -38,7 +41,19 @@ public sealed class Registration(
         await using var tx = await LockAsync(normalized, cancellationToken);
         var user = await FindUserAsync(normalized, cancellationToken);
         string? stamp = null;
-        if (user is null || (user.Status == AccountStatus.PENDING_VERIFICATION && !user.EmailConfirmed && user.DeletedAt is null))
+
+        // Una cuenta creada con Google no tiene contraseña: recibe el código para crearla, con la misma respuesta pública.
+        if (user is { PasswordHash: null, EmailConfirmed: true, DeletedAt: null, Status: AccountStatus.ACTIVE or AccountStatus.PENDING_APPROVAL })
+        {
+            var setupCode = await codes.IssueAsync(normalized, user.SecurityStamp);
+            await tx.CommitAsync(cancellationToken);
+            await DeliverPasswordSetupAsync(user.Email!, setupCode!, cancellationToken);
+            return;
+        }
+
+        // Una cuenta pre-registrada (importación histórica) se reclama: conserva su perfil e historial.
+        var claim = user is { Status: AccountStatus.PRE_REGISTERED, DeletedAt: null };
+        if (user is null || claim || (user.Status == AccountStatus.PENDING_VERIFICATION && !user.EmailConfirmed && user.DeletedAt is null))
         {
             if (user is null)
             {
@@ -54,11 +69,21 @@ public sealed class Registration(
                 // Bind the new code to the credentials of this registration; old codes stop working.
                 user.PasswordHash = users.PasswordHasher.HashPassword(user, request.Password);
                 user.SecurityStamp = Guid.NewGuid().ToString();
+                user.Status = AccountStatus.PENDING_VERIFICATION;
             }
 
             var profile = await ProfileAsync(user.Id, cancellationToken);
-            profile.FirstName = request.FirstName;
-            profile.LastName = request.LastName;
+            if (!claim || string.IsNullOrWhiteSpace(profile.FirstName))
+            {
+                profile.FirstName = request.FirstName;
+                profile.LastName = request.LastName;
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.Phone) && (!claim || string.IsNullOrWhiteSpace(profile.Phone)))
+            {
+                profile.Phone = request.Phone.Trim();
+            }
+
             await db.SaveChangesAsync(cancellationToken);
             stamp = user.SecurityStamp;
         }
@@ -142,6 +167,57 @@ public sealed class Registration(
         await tx.CommitAsync(cancellationToken);
     }
 
+    public async Task ReapplyAsync(ReapplyRequest request, string ip, CancellationToken cancellationToken)
+    {
+        var normalized = users.NormalizeEmail(request.Email.Trim())!;
+        await limits.CheckAsync("login", normalized, ip);
+        await using var tx = await LockAsync(normalized, cancellationToken);
+        var user = await FindUserAsync(normalized, cancellationToken);
+        if (user is null || user.DeletedAt.HasValue || !await users.CheckPasswordAsync(user, request.Password))
+        {
+            if (user is not null)
+            {
+                await users.AccessFailedAsync(user);
+                await tx.CommitAsync(cancellationToken);
+            }
+
+            throw new AccountException(AccountError.InvalidSession);
+        }
+
+        var last = await db.AccountApprovalRequests
+            .Where(r => r.UserId == user.Id)
+            .OrderByDescending(r => r.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (user.Status != AccountStatus.REJECTED || last is null)
+        {
+            throw new AccountException(AccountError.RegistrationConflict);
+        }
+
+        var now = clock.GetUtcNow().UtcDateTime;
+        if (!last.CanRequestAgainAt(now))
+        {
+            throw new AccountException(
+                AccountError.ReapplyTooEarly,
+                new Dictionary<string, object?> { ["reapplyAvailableAt"] = last.ReviewedAt?.AddDays(1) });
+        }
+
+        // La solicitud anterior queda como historial; la nueva lleva los datos actualizados.
+        var next = last.CreateResubmission();
+        next.FirstName = request.FirstName.Trim();
+        next.LastName = request.LastName.Trim();
+        next.Phone = request.Phone.Trim();
+        next.Relationship = request.RelationWithPastoral.Trim();
+        db.AccountApprovalRequests.Add(next);
+        var profile = await ProfileAsync(user.Id, cancellationToken);
+        profile.FirstName = next.FirstName;
+        profile.LastName = next.LastName;
+        profile.Phone = next.Phone;
+        user.Status = AccountStatus.PENDING_APPROVAL;
+        db.AuditEvents.Add(AuditEvent.Create(user.Id, AuditActions.AccountReapplied, AuditResourceTypes.AccountApprovalRequest, next.Id, null, now));
+        await db.SaveChangesAsync(cancellationToken);
+        await tx.CommitAsync(cancellationToken);
+    }
+
     private async Task<Profile> ProfileAsync(Guid userId, CancellationToken cancellationToken) =>
         await db.Profiles.SingleOrDefaultAsync(p => p.UserId == userId, cancellationToken)
         ?? db.Profiles.Add(new Profile { UserId = userId }).Entity;
@@ -161,6 +237,22 @@ public sealed class Registration(
     private async Task<bool> NeedsApprovalDataAsync(AppUser user, CancellationToken cancellationToken) =>
         user.EmailConfirmed && user.Status == AccountStatus.PENDING_APPROVAL
         && !await db.AccountApprovalRequests.AnyAsync(r => r.UserId == user.Id, cancellationToken);
+
+    private async Task DeliverPasswordSetupAsync(string email, string code, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await mail.SendAsync(
+                email,
+                "Crea tu contraseña en Uvoluntapp",
+                $"Tu cuenta ya existe y entraste antes con Google. Para crear tu contraseña usa el código {code} (vence en 10 minutos) en {links.CreatePassword(email)}",
+                cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+        {
+            logger.LogError("El proveedor de correo no pudo entregar el código de contraseña ({ErrorType}).", ex.GetType().Name);
+        }
+    }
 
     private async Task DeliverAsync(string email, string code, CancellationToken cancellationToken)
     {

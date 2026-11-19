@@ -1,7 +1,5 @@
 using System.Security.Cryptography;
-
 using System.Text;
-
 using Uvoluntapp.Backend.Domain.Utils.Enums;
 
 namespace Uvoluntapp.Backend.Domain.Entities.Accounts;

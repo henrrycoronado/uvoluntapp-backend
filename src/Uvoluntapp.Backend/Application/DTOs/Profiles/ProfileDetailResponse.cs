@@ -1,5 +1,4 @@
 using Uvoluntapp.Backend.Application.DTOs.Administration;
-using Uvoluntapp.Backend.Domain.Utils.Enums;
 
 namespace Uvoluntapp.Backend.Application.DTOs.Profiles;
 

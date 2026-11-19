@@ -2,17 +2,17 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Threading;
 using System;
-
-using Xunit;
-
 using Uvoluntapp.Backend.Application.DTOs.Accounts;
 using Uvoluntapp.Backend.Application.Exceptions.Accounts;
 using Uvoluntapp.Backend.Application.Interfaces.Accounts;
+using Uvoluntapp.Backend.Application.Interfaces.Common;
 using Uvoluntapp.Backend.Application.Services.Accounts;
 using Uvoluntapp.Backend.Domain.Entities.Accounts;
 using Uvoluntapp.Backend.Domain.Policies;
 using Uvoluntapp.Backend.Domain.Utils.Enums;
 using Uvoluntapp.Backend.Domain.Utils.Exceptions;
+using Xunit;
+
 namespace Uvoluntapp.Backend.Tests.Unit;
 
 public sealed class GoogleAndRecoveryTests
@@ -168,6 +168,7 @@ public sealed class GoogleAndRecoveryTests
             new FakeRecoveryTokenGenerator(),
             new FakeRateLimiter(),
             new FakeEmailSender(),
+            new FakeLinks(),
             TimeProvider.System)
         .RequestAsync(new ForgotPasswordRequest("person@example.com"), "127.0.0.1");
 
@@ -233,7 +234,7 @@ public sealed class GoogleAndRecoveryTests
         public Task<PasswordRecoveryToken?> FindTokenAsync(string tokenHash, CancellationToken cancellationToken) =>
             Task.FromResult<PasswordRecoveryToken?>(null);
 
-        public Task SetPasswordAsync(Guid userId, string newPassword, CancellationToken cancellationToken) =>
+        public Task SetPasswordAsync(Guid userId, string newPassword, DateTime utcNow, CancellationToken cancellationToken) =>
             Task.CompletedTask;
     }
 
@@ -254,5 +255,12 @@ public sealed class GoogleAndRecoveryTests
     {
         public Task SendAsync(string recipient, string subject, string message, CancellationToken cancellationToken) =>
             Task.CompletedTask;
+    }
+
+    private sealed class FakeLinks : IWebLinks
+    {
+        public string PasswordReset(string token) => "https://web/restablecer?token=" + token;
+
+        public string CreatePassword(string email) => "https://web/crear-contrasena";
     }
 }

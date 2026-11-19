@@ -2,10 +2,9 @@ using System;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-
+using Uvoluntapp.Backend.Infrastructure.Persistence;
 using Xunit;
 
-using Uvoluntapp.Backend.Infrastructure.Persistence;
 namespace Uvoluntapp.Backend.Tests.Integration;
 
 [Collection(nameof(HostConnectionTests))]

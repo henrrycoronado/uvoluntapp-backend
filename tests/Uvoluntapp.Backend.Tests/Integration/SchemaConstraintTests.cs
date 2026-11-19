@@ -2,16 +2,14 @@ using System.Threading.Tasks;
 using System;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
-
-using Xunit;
-
 using Uvoluntapp.Backend.Domain.Entities.Accounts;
 using Uvoluntapp.Backend.Domain.Entities.Activities;
-using Uvoluntapp.Backend.Domain.Entities.Common;
 using Uvoluntapp.Backend.Domain.Entities.Programs;
 using Uvoluntapp.Backend.Domain.Utils.Enums;
 using Uvoluntapp.Backend.Infrastructure.Identity;
 using Uvoluntapp.Backend.Infrastructure.Persistence;
+using Xunit;
+
 namespace Uvoluntapp.Backend.Tests.Integration;
 
 public sealed class SchemaConstraintTests(PostgresFixture fixture) : IClassFixture<PostgresFixture>

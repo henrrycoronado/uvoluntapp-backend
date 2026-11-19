@@ -4,7 +4,8 @@ using Uvoluntapp.Backend.Application.DTOs.Accounts;
 using Uvoluntapp.Backend.Application.Exceptions.Accounts;
 using Uvoluntapp.Backend.Application.Interfaces.Accounts;
 using Uvoluntapp.Backend.Domain.Entities.Accounts;
-using Uvoluntapp.Backend.Domain.Entities.Common;
+using Uvoluntapp.Backend.Domain.Entities.Audit;
+using Uvoluntapp.Backend.Domain.Utils.Constants;
 using Uvoluntapp.Backend.Domain.Utils.Enums;
 using Uvoluntapp.Backend.Infrastructure.Identity;
 using Uvoluntapp.Backend.Infrastructure.Persistence;
@@ -52,7 +53,8 @@ public sealed class AccountSessions(
 
         if (user.Status != AccountStatus.ACTIVE || !user.EmailConfirmed)
         {
-            throw new AccountException(AccountError.InactiveAccount);
+            // La contraseña es correcta: solo la dueña de la cuenta ve su estado y cuándo puede volver a postular.
+            throw new AccountException(AccountError.InactiveAccount, await InactiveDetailsAsync(user, cancellationToken));
         }
 
         EnsureUpdated(await users.ResetAccessFailedCountAsync(user));
@@ -81,12 +83,14 @@ public sealed class AccountSessions(
             throw new AccountException(AccountError.InvalidInput);
         }
 
+        db.AuditEvents.Add(AuditEvent.Create(user!.Id, AuditActions.PasswordCreated, AuditResourceTypes.User, user.Id));
         TokenResponse? session = null;
-        if (user!.Status == AccountStatus.ACTIVE)
+        if (user.Status == AccountStatus.ACTIVE)
         {
             session = tokens.Issue(db.AuthSessions.Add(new AuthSession { UserId = user.Id }).Entity);
-            await db.SaveChangesAsync(cancellationToken);
         }
+
+        await db.SaveChangesAsync(cancellationToken);
 
         await tx.CommitAsync(cancellationToken);
         return new SetPasswordResponse { AccountStatus = user.Status.ToString(), Tokens = session };
@@ -145,6 +149,22 @@ public sealed class AccountSessions(
         {
             throw new AccountException(AccountError.RegistrationConflict);
         }
+    }
+
+    private async Task<Dictionary<string, object?>> InactiveDetailsAsync(AppUser user, CancellationToken cancellationToken)
+    {
+        var details = new Dictionary<string, object?> { ["accountStatus"] = user.Status.ToString() };
+        if (user.Status == AccountStatus.REJECTED)
+        {
+            var last = await db.AccountApprovalRequests
+                .Where(r => r.UserId == user.Id)
+                .OrderByDescending(r => r.CreatedAt)
+                .FirstOrDefaultAsync(cancellationToken);
+            details["rejectionReason"] = last?.RejectionReason;
+            details["reapplyAvailableAt"] = last?.ReviewedAt?.AddDays(1);
+        }
+
+        return details;
     }
 
     private async Task StartPasswordSetupAsync(AppUser user, string normalizedEmail, CancellationToken cancellationToken)
