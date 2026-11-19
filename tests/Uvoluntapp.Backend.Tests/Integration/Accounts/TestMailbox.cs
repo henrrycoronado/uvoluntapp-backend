@@ -1,9 +1,9 @@
-using System;
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
-using Uvoluntapp.Backend.Application.Accounts;
+using System.Threading;
+using System;
+using Uvoluntapp.Backend.Application.Interfaces.Accounts;
 
 namespace Uvoluntapp.Backend.Tests.Integration.Accounts;
 

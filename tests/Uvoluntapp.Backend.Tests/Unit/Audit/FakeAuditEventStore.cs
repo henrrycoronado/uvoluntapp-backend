@@ -1,8 +1,9 @@
 using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
-using Uvoluntapp.Backend.Application.Audit;
-using Uvoluntapp.Backend.Domain;
+using System.Threading;
+using Uvoluntapp.Backend.Application.DTOs.Audit;
+using Uvoluntapp.Backend.Application.Interfaces.Audit;
+using Uvoluntapp.Backend.Domain.Entities.Audit;
 
 namespace Uvoluntapp.Backend.Tests.Unit.Audit;
 

@@ -1,8 +1,8 @@
-using System;
-using System.Net;
 using System.Net.Http;
+using System.Net;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
+using System;
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
 using Microsoft.AspNetCore.Hosting;
@@ -13,10 +13,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using StackExchange.Redis;
 using Testcontainers.PostgreSql;
-using Uvoluntapp.Backend.Application.Accounts;
-using Uvoluntapp.Backend.Infrastructure.Persistence;
+
 using Xunit;
 
+using Uvoluntapp.Backend.Application.Interfaces.Accounts;
+using Uvoluntapp.Backend.Infrastructure.Persistence;
 namespace Uvoluntapp.Backend.Tests.Integration.Accounts;
 
 public sealed class AuthFixture : IAsyncLifetime

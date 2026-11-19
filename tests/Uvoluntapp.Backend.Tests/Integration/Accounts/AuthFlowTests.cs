@@ -1,22 +1,24 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Net.Http;
+using System.Net;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
+using System.Text;
 using System.Threading.Tasks;
+using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Uvoluntapp.Backend.Application.Accounts;
-using Uvoluntapp.Backend.Application.Accounts.Contracts;
-using Uvoluntapp.Backend.Domain.Accounts;
-using Uvoluntapp.Backend.Infrastructure.Accounts;
+
 using Xunit;
 
+using Uvoluntapp.Backend.Application.DTOs.Accounts;
+using Uvoluntapp.Backend.Application.Exceptions.Accounts;
+using Uvoluntapp.Backend.Domain.Utils.Enums;
+using Uvoluntapp.Backend.Infrastructure.Auth;
+using Uvoluntapp.Backend.Infrastructure.Identity;
 namespace Uvoluntapp.Backend.Tests.Integration.Accounts;
 
 public sealed class AuthFlowTests(AuthFixture fixture) : IClassFixture<AuthFixture>

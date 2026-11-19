@@ -1,9 +1,10 @@
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Testcontainers.PostgreSql;
-using Uvoluntapp.Backend.Infrastructure.Persistence;
+
 using Xunit;
 
+using Uvoluntapp.Backend.Infrastructure.Persistence;
 namespace Uvoluntapp.Backend.Tests.Integration;
 
 public sealed class PostgresFixture : IAsyncLifetime

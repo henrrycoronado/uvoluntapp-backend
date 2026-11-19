@@ -1,6 +1,6 @@
-using Uvoluntapp.Backend.Application.Accounts.Contracts;
 using Xunit;
 
+using Uvoluntapp.Backend.Application.Services.Accounts;
 namespace Uvoluntapp.Backend.Tests.Unit.Accounts;
 
 public class InstitutionalEmailPolicyTests
