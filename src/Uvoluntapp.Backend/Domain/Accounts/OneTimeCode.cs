@@ -29,6 +29,22 @@ public sealed class OneTimeCode
         return new OneTimeCode(Hash(code), createdAt.ToUniversalTime().Add(_validity));
     }
 
+    // Recupera un desafío ya emitido desde su almacén sin conocer el código en claro.
+    public static OneTimeCode Restore(string codeHash, DateTimeOffset expiresAt, int attempts, bool isUsed)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(codeHash);
+        if (attempts < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(attempts));
+        }
+
+        return new OneTimeCode(codeHash, expiresAt)
+        {
+            Attempts = attempts,
+            IsUsed = isUsed,
+        };
+    }
+
     public OneTimeCodeVerificationResult Verify(string code, DateTimeOffset now)
     {
         if (IsUsed)
