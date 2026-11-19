@@ -21,7 +21,7 @@ Reglas para cualquier agente que trabaje en este repositorio. Las reglas de nego
 1. Trabaja solo en los archivos que permite tu tarjeta de tarea (`coord/tasks/T-xxx.md`).
 2. No modifiques migraciones, `AppDbContext*`, `Program.cs`, `Src/Presentation/Extensions/DependencyInjectionExtensions.cs` ni `.github/`. Si los necesitas, descríbelo en tu informe; el integrador lo hace.
 3. No hagas `git push` ni operaciones en Jira o GitHub. Commit local solamente.
-4. Commits: `tipo(SCRUM-xx): descripción`. Solo las tarjetas sin historia de Jira (pruebas de humo, infraestructura) usan `tipo(alcance): descripción`, por ejemplo `test(smoke): ...`.
+4. Commits: `tipo(SCRUM-xx): descripción`. Sin líneas `Co-authored-by`, `Co-Authored-By` ni firmas de herramientas de IA en el mensaje. Solo las tarjetas sin historia de Jira (pruebas de humo, infraestructura) usan `tipo(alcance): descripción`, por ejemplo `test(smoke): ...`.
 5. Toda regla de negocio nueva lleva al menos una prueba unitaria.
 6. Autorización: nunca `[Authorize(Roles=...)]`. Usa el servicio de autorización por contexto.
 7. Nada de credenciales en el código; configuración por variables de entorno.
