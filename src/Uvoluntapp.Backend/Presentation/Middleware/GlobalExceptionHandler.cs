@@ -9,7 +9,7 @@ using Uvoluntapp.Backend.Domain.Utils.Exceptions;
 namespace Uvoluntapp.Backend.Presentation.Middleware;
 
 /// <summary>Traduce las excepciones de aplicación y dominio a Problem Details (AGENTS.md, regla 8).</summary>
-internal sealed class GlobalExceptionHandler : IExceptionHandler
+internal sealed class GlobalExceptionHandler(PlanningRejectionAudit planningAudit) : IExceptionHandler
 {
     public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
     {
@@ -25,6 +25,7 @@ internal sealed class GlobalExceptionHandler : IExceptionHandler
         await httpContext.Response.WriteAsJsonAsync(
             new ProblemDetails { Type = "about:blank", Title = title, Status = status, Detail = exception.Message },
             cancellationToken);
+        await planningAudit.RecordAsync(httpContext, status, exception.Message, cancellationToken);
         return true;
     }
 

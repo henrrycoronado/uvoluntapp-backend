@@ -59,4 +59,6 @@ public static class AuditActions
     public const string ActivityRescheduled = "ACTIVITY_RESCHEDULED";
 
     public const string ActivityMoved = "ACTIVITY_MOVED";
+
+    public const string PlanningOperationRejected = "PLANNING_OPERATION_REJECTED";
 }

@@ -117,6 +117,7 @@ public static class DependencyInjectionExtensions
 
         services.AddDataProtection();
         services.AddProblemDetails();
+        services.AddSingleton<PlanningRejectionAudit>();
         services.AddExceptionHandler<GlobalExceptionHandler>();
         services.AddControllers();
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
