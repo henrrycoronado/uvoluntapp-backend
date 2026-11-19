@@ -62,6 +62,7 @@ internal sealed class GlobalExceptionHandler : IExceptionHandler
             _ => (400, "Datos inválidos."),
         },
         ArgumentException => (400, "Datos inválidos."),
+        DbUpdateConcurrencyException => (409, "Otra persona modificó este recurso. Recarga y vuelve a intentar."),
         DbUpdateException db => Constraint(db),
         _ => null,
     };

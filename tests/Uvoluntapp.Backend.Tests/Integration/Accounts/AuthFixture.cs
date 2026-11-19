@@ -33,6 +33,8 @@ public sealed class AuthFixture : IAsyncLifetime
 
     public string RedisConnection { get; private set; } = string.Empty;
 
+    public IServiceProvider Services => _host.Services;
+
     public IConnectionMultiplexer Redis => _host.Services.GetRequiredService<IConnectionMultiplexer>();
 
     public HttpClient Client()
