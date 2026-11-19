@@ -1,6 +1,5 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
@@ -127,21 +126,6 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AdminGrantRequests", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "AspNetRoleClaims",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    RoleId = table.Column<Guid>(type: "uuid", nullable: false),
-                    ClaimType = table.Column<string>(type: "text", nullable: true),
-                    ClaimValue = table.Column<string>(type: "text", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_AspNetRoleClaims", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -353,9 +337,6 @@ namespace U_VoluntApp_Core.Src.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "AdminGrantRequests");
-
-            migrationBuilder.DropTable(
-                name: "AspNetRoleClaims");
 
             migrationBuilder.DropTable(
                 name: "AuditEvents");
