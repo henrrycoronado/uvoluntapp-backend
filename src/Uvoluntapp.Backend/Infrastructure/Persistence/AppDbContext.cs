@@ -137,8 +137,17 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             period.ToTable("academic_periods");
             period.Property(p => p.StartsAt).HasColumnName("start_date");
             period.Property(p => p.EndsAt).HasColumnName("end_date");
+            period.Property(p => p.Label).HasMaxLength(20);
+            period.HasIndex(p => p.Label).IsUnique();
         });
-        model.Entity<VolunteerProgram>().ToTable("programs");
+        model.Entity<VolunteerProgram>(program =>
+        {
+            program.ToTable("programs");
+            program.Property(p => p.Name).HasMaxLength(VolunteerProgram.NameMaxLength);
+            program.Property(p => p.Description).HasMaxLength(VolunteerProgram.DescriptionMaxLength);
+            program.Property(p => p.Contact).HasMaxLength(VolunteerProgram.ContactMaxLength);
+            program.Property(p => p.ReferenceSchedule).HasMaxLength(VolunteerProgram.ReferenceScheduleMaxLength);
+        });
         model.Entity<ProgramPeriod>(link =>
         {
             link.ToTable("program_periods");
@@ -151,7 +160,20 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             {
                 t.HasCheckConstraint("ck_activities_schedule", "ends_at > starts_at");
                 t.HasCheckConstraint("ck_activities_capacity", "capacity > 0");
+
+                // El cupo solo existe si la actividad requiere registro previo (SCRUM-49).
+                t.HasCheckConstraint("ck_activities_capacity_requires_registration", "capacity IS NULL OR requires_registration");
+                t.HasCheckConstraint("ck_activities_expected_hours", "expected_hours IS NULL OR (expected_hours >= 0 AND expected_hours <= 1000)");
             });
+            activity.Property(a => a.Title).HasMaxLength(Activity.TitleMaxLength);
+            activity.Property(a => a.Description).HasMaxLength(Activity.TextMaxLength);
+            activity.Property(a => a.Location).HasMaxLength(Activity.LocationMaxLength);
+            activity.Property(a => a.MeetingUrl).HasMaxLength(Activity.UrlMaxLength);
+            activity.Property(a => a.ParticipationConditions).HasMaxLength(Activity.TextMaxLength);
+            activity.Property(a => a.PeriodicityNote).HasMaxLength(Activity.NoteMaxLength);
+            activity.Property(a => a.GroupLabel).HasMaxLength(Activity.GroupLabelMaxLength);
+            activity.Property(a => a.ExpectedHours).HasPrecision(6, 1);
+            activity.HasIndex(a => new { a.Status, a.StartsAt });
             activity.Property(a => a.AcademicPeriodId).HasColumnName("period_id");
             activity.HasOne<AcademicPeriod>().WithMany().HasForeignKey(a => a.AcademicPeriodId);
             activity.HasOne<VolunteerProgram>().WithMany().HasForeignKey(a => a.ProgramId);

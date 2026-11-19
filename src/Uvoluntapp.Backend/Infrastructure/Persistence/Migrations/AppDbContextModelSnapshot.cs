@@ -498,33 +498,60 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Description")
-                        .HasColumnType("text")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
                         .HasColumnName("description");
 
                     b.Property<DateTime>("EndsAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("ends_at");
 
+                    b.Property<decimal?>("ExpectedHours")
+                        .HasPrecision(6, 1)
+                        .HasColumnType("numeric(6,1)")
+                        .HasColumnName("expected_hours");
+
                     b.Property<DateTime?>("FinishedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("finished_at");
 
+                    b.Property<string>("GroupLabel")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("group_label");
+
                     b.Property<string>("Location")
-                        .HasColumnType("text")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
                         .HasColumnName("location");
+
+                    b.Property<string>("MeetingUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("meeting_url");
 
                     b.Property<string>("Modality")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("modality");
 
+                    b.Property<string>("ParticipationConditions")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("participation_conditions");
+
                     b.Property<string>("PeriodicityNote")
-                        .HasColumnType("text")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
                         .HasColumnName("periodicity_note");
 
                     b.Property<Guid?>("ProgramId")
                         .HasColumnType("uuid")
                         .HasColumnName("program_id");
+
+                    b.Property<bool>("RequiresRegistration")
+                        .HasColumnType("boolean")
+                        .HasColumnName("requires_registration");
 
                     b.Property<DateTime?>("StartedAt")
                         .HasColumnType("timestamp with time zone")
@@ -541,7 +568,8 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
                         .HasColumnName("title");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -560,9 +588,15 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("ProgramId", "AcademicPeriodId");
 
+                    b.HasIndex("Status", "StartsAt");
+
                     b.ToTable("activities", null, t =>
                         {
                             t.HasCheckConstraint("ck_activities_capacity", "capacity > 0");
+
+                            t.HasCheckConstraint("ck_activities_capacity_requires_registration", "capacity IS NULL OR requires_registration");
+
+                            t.HasCheckConstraint("ck_activities_expected_hours", "expected_hours IS NULL OR (expected_hours >= 0 AND expected_hours <= 1000)");
 
                             t.HasCheckConstraint("ck_activities_modality", "modality IN ('IN_PERSON', 'VIRTUAL', 'HYBRID')");
 
@@ -708,7 +742,8 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("Label")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("label");
 
                     b.Property<DateTime>("StartsAt")
@@ -722,6 +757,9 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         .HasColumnName("xmin");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Label")
+                        .IsUnique();
 
                     b.ToTable("academic_periods", (string)null);
                 });
@@ -769,6 +807,11 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("Contact")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("contact");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -778,13 +821,20 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("Description")
-                        .HasColumnType("text")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
                         .HasColumnName("description");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
                         .HasColumnName("name");
+
+                    b.Property<string>("ReferenceSchedule")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reference_schedule");
 
                     b.Property<string>("Status")
                         .IsRequired()
