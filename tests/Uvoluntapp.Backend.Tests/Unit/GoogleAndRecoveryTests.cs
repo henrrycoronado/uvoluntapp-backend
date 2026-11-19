@@ -2,9 +2,6 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Threading;
 using System;
-
-using Xunit;
-
 using Uvoluntapp.Backend.Application.DTOs.Accounts;
 using Uvoluntapp.Backend.Application.Exceptions.Accounts;
 using Uvoluntapp.Backend.Application.Interfaces.Accounts;
@@ -14,6 +11,8 @@ using Uvoluntapp.Backend.Domain.Entities.Accounts;
 using Uvoluntapp.Backend.Domain.Policies;
 using Uvoluntapp.Backend.Domain.Utils.Enums;
 using Uvoluntapp.Backend.Domain.Utils.Exceptions;
+using Xunit;
+
 namespace Uvoluntapp.Backend.Tests.Unit;
 
 public sealed class GoogleAndRecoveryTests

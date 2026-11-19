@@ -5,11 +5,10 @@ using System.Text;
 using System;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-
-using Xunit;
-
 using Uvoluntapp.Backend.Domain.Entities.Accounts;
 using Uvoluntapp.Backend.Infrastructure.Auth;
+using Xunit;
+
 namespace Uvoluntapp.Backend.Tests.Unit.Accounts;
 
 public sealed class SessionTokenTests

@@ -1,10 +1,9 @@
 using System.Threading.Tasks;
 using System;
 using Microsoft.EntityFrameworkCore;
-
+using Uvoluntapp.Backend.Domain.Entities.Accounts;
 using Xunit;
 
-using Uvoluntapp.Backend.Domain.Entities.Accounts;
 namespace Uvoluntapp.Backend.Tests.Integration;
 
 public sealed class CareerPersistenceTests(PostgresFixture fixture) : IClassFixture<PostgresFixture>

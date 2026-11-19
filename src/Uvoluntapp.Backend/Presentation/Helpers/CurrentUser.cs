@@ -1,5 +1,4 @@
 using System.Security.Claims;
-
 using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace Uvoluntapp.Backend.Presentation.Helpers;

@@ -1,13 +1,12 @@
 using System.Collections.Generic;
 using System;
-
-using Xunit;
-
 using Uvoluntapp.Backend.Application.DTOs.Profiles;
 using Uvoluntapp.Backend.Application.Services.Accounts;
 using Uvoluntapp.Backend.Application.Services.Profiles;
 using Uvoluntapp.Backend.Domain.Entities.Accounts;
 using Uvoluntapp.Backend.Domain.Utils.Enums;
+using Xunit;
+
 namespace Uvoluntapp.Backend.Tests.Unit;
 
 public sealed class ProfileAndApprovalTests

@@ -1,10 +1,9 @@
 using System.Linq;
 using System.Text.Json;
 using System;
-
+using Uvoluntapp.Backend.Application.DTOs.Accounts;
 using Xunit;
 
-using Uvoluntapp.Backend.Application.DTOs.Accounts;
 namespace Uvoluntapp.Backend.Tests.Unit.Accounts;
 
 public class AuthContractSerializationTests
