@@ -375,6 +375,28 @@ public sealed class AuthFlowTests(AuthFixture fixture) : IClassFixture<AuthFixtu
         Assert.True(await db.AuditEvents.AnyAsync(e => e.Action == "PASSWORD_CREATED" && e.ResourceId == user.Id));
     }
 
+    [Fact]
+    public async Task ProfileAndAccessEmailChangesAreAuditedAndTheEmailChangeRevokesSessions()
+    {
+        using var client = fixture.Client();
+        var request = NewRegistration("ucb.edu.bo");
+        await RegisterAsync(client, request);
+        var verified = await (await VerifyAsync(client, request.Email)).Content.ReadFromJsonAsync<VerifyOtpResponse>();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", verified!.Tokens!.AccessToken);
+
+        (await client.PatchAsJsonAsync("/api/v1/profile", new { phone = "77777777" })).EnsureSuccessStatusCode();
+        var newEmail = $"{Guid.NewGuid():N}@example.org";
+        (await client.PostAsJsonAsync("/api/v1/profile/change-email", new { newEmail, password = request.Password })).EnsureSuccessStatusCode();
+        (await client.PostAsJsonAsync("/api/v1/profile/verify-email-change", new { code = fixture.Mail.Code(newEmail) })).EnsureSuccessStatusCode();
+
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/profile")).StatusCode);
+        await using var db = fixture.Context();
+        var user = await db.Users.SingleAsync(u => u.Email == newEmail);
+        var actions = await db.AuditEvents.Where(e => e.ResourceId == user.Id).Select(e => e.Action).ToListAsync();
+        Assert.Contains("PROFILE_UPDATED", actions);
+        Assert.Contains("ACCESS_EMAIL_CHANGED", actions);
+    }
+
     private async Task<string> GoogleOnlyUserAsync(AccountStatus status)
     {
         var email = $"{Guid.NewGuid():N}@example.org";

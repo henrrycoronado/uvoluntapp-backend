@@ -6,6 +6,8 @@ using Uvoluntapp.Backend.Application.Interfaces.Administration;
 using Uvoluntapp.Backend.Application.Interfaces.Common;
 using Uvoluntapp.Backend.Application.Interfaces.Profiles;
 using Uvoluntapp.Backend.Application.Services.Accounts;
+using Uvoluntapp.Backend.Application.Services.Audit;
+using Uvoluntapp.Backend.Domain.Utils.Constants;
 
 namespace Uvoluntapp.Backend.Application.Services.Profiles;
 
@@ -19,6 +21,7 @@ public sealed class ProfileApplicationService(
     IEmailSender mail,
     IOneTimeCodeGenerator codes,
     IUnitOfWork unitOfWork,
+    AuditRecorder audit,
     TimeProvider clock)
 {
     private static readonly HashSet<ProfileUpdateField> _editableFields =
@@ -52,6 +55,18 @@ public sealed class ProfileApplicationService(
         var profile = await profiles.FindByUserAsync(userId, cancellationToken)
             ?? throw new NotFoundException("El perfil no existe.");
         profileRules.UpdateMyProfile(userId, profile, request, _editableFields);
+        var fields = new[] { ("firstName", request.FirstName), ("lastName", request.LastName), ("phone", request.Phone) }
+            .Where(f => f.Item2 is not null)
+            .Select(f => f.Item1)
+            .ToList();
+        await audit.RecordAsync(
+            userId,
+            AuditActions.ProfileUpdated,
+            AuditResourceTypes.User,
+            userId,
+            new Dictionary<string, object?> { ["fields"] = fields },
+            clock.GetUtcNow().UtcDateTime,
+            cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return await GetAsync(userId, cancellationToken);
     }
@@ -77,6 +92,14 @@ public sealed class ProfileApplicationService(
         var now = clock.GetUtcNow();
         var result = await emails.ConfirmEmailChangeAsync(userId, request.Code, now, cancellationToken);
         await accounts.RevokeSessionsAsync(result.SessionIdsToRevoke, now.UtcDateTime, cancellationToken);
+        await audit.RecordAsync(
+            userId,
+            AuditActions.AccessEmailChanged,
+            AuditResourceTypes.User,
+            userId,
+            new Dictionary<string, object?> { ["revokedSessions"] = result.SessionIdsToRevoke.Count },
+            now.UtcDateTime,
+            cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return "Correo actualizado. Vuelve a iniciar sesión.";
     }
@@ -99,7 +122,9 @@ public sealed class ProfileApplicationService(
         VerifyCodeRequest request,
         CancellationToken cancellationToken = default)
     {
-        await emails.ConfirmInstitutionalEmailAsync(userId, request.Code, clock.GetUtcNow(), cancellationToken);
+        var now = clock.GetUtcNow();
+        await emails.ConfirmInstitutionalEmailAsync(userId, request.Code, now, cancellationToken);
+        await audit.RecordAsync(userId, AuditActions.InstitutionalEmailVerified, AuditResourceTypes.User, userId, null, now.UtcDateTime, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return "Correo institucional verificado.";
     }
