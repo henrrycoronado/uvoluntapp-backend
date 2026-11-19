@@ -1,75 +1,7 @@
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using QuestPDF.Infrastructure;
-using U_VoluntApp_Core.Src.Domain.Utils.Configuration;
-using U_VoluntApp_Core.Src.Infrastructure.Persistence;
-using U_VoluntApp_Core.Src.Infrastructure.Persistence.Interfaces.Profile;
-using U_VoluntApp_Core.Src.Infrastructure.Persistence.Seeders;
 using U_VoluntApp_Core.Src.Presentation.Extensions;
-using U_VoluntApp_Core.Src.Presentation.Middleware;
-
-QuestPDF.Settings.License = LicenseType.Community;
-
 var builder = WebApplication.CreateBuilder(args);
-
-EnvLoader.Load();
-
-Serilog.Debugging.SelfLog.Enable(Console.Error);
-builder.Host.ConfigureSerilog();
-
-builder.Services.AddControllers()
-    .AddCustomModelValidation();
-builder.Services.AddProblemDetails();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddHttpContextAccessor();
-
-builder.Services.AddDatabaseConfiguration(builder.Configuration);
-builder.Services.AddAppServices();
-builder.Services.AddSwaggerConfiguration();
-builder.Services.AddAuthConfiguration(builder.Configuration);
-builder.Services.AddCorsConfiguration();
-
+builder.Services.AddAppServices(builder.Configuration);
 var app = builder.Build();
-
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await db.Database.MigrateAsync();
-
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
-    var profileRepo = scope.ServiceProvider.GetRequiredService<IProfileRepository>();
-    var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
-
-    await AuthSeeder.SeedRolesAndSuperUserAsync(roleManager, userManager, profileRepo, config);
-    await DataSeeder.SeedInitialDataAsync(db, config);
-}
-
-var showSwagger = builder.Configuration.GetValue<bool>("SHOW_SWAGGER", builder.Environment.IsDevelopment());
-if (showSwagger || app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "UVoluntapp API v1");
-        options.RoutePrefix = "swagger";
-    });
-}
-
-app.UseCustomSerilogRequestLogging();
-app.UseMiddleware<RequestValidationMiddleware>();
-app.UseMiddleware<ExceptionMiddleware>();
-
-var enableHttpsRedirection = builder.Configuration.GetValue("ENABLE_HTTPS_REDIRECTION", builder.Environment.IsDevelopment());
-if (enableHttpsRedirection)
-{
-    app.UseHttpsRedirection();
-}
-
-app.UseCors("AllowSpecificOrigins");
-app.UseAuthentication();
-app.UseAuthorization();
-
-app.MapControllers();
-
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.Run();
+public partial class Program { }
