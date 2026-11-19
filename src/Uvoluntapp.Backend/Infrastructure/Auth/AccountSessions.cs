@@ -4,6 +4,8 @@ using Uvoluntapp.Backend.Application.DTOs.Accounts;
 using Uvoluntapp.Backend.Application.Exceptions.Accounts;
 using Uvoluntapp.Backend.Application.Interfaces.Accounts;
 using Uvoluntapp.Backend.Domain.Entities.Accounts;
+using Uvoluntapp.Backend.Domain.Entities.Audit;
+using Uvoluntapp.Backend.Domain.Utils.Constants;
 using Uvoluntapp.Backend.Domain.Utils.Enums;
 using Uvoluntapp.Backend.Infrastructure.Identity;
 using Uvoluntapp.Backend.Infrastructure.Persistence;
@@ -80,12 +82,14 @@ public sealed class AccountSessions(
             throw new AccountException(AccountError.InvalidInput);
         }
 
+        db.AuditEvents.Add(AuditEvent.Create(user!.Id, AuditActions.PasswordCreated, AuditResourceTypes.User, user.Id));
         TokenResponse? session = null;
-        if (user!.Status == AccountStatus.ACTIVE)
+        if (user.Status == AccountStatus.ACTIVE)
         {
             session = tokens.Issue(db.AuthSessions.Add(new AuthSession { UserId = user.Id }).Entity);
-            await db.SaveChangesAsync(cancellationToken);
         }
+
+        await db.SaveChangesAsync(cancellationToken);
 
         await tx.CommitAsync(cancellationToken);
         return new SetPasswordResponse { AccountStatus = user.Status.ToString(), Tokens = session };

@@ -24,7 +24,7 @@ public class AuthContractSerializationTests
         using var document = JsonDocument.Parse(JsonSerializer.Serialize(request, _webOptions));
 
         Assert.Equal(
-            new[] { "email", "firstName", "lastName", "password" },
+            new[] { "email", "firstName", "lastName", "password", "phone" },
             document.RootElement.EnumerateObject().Select(property => property.Name).OrderBy(name => name));
     }
 

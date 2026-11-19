@@ -22,4 +22,9 @@ public sealed record RegisterRequest
     [Required]
     [JsonPropertyName("lastName")]
     public string LastName { get; init; } = string.Empty;
+
+    // Opcional en el contrato (cambio aditivo); la web lo pide siempre.
+    [MaxLength(30)]
+    [JsonPropertyName("phone")]
+    public string? Phone { get; init; }
 }
