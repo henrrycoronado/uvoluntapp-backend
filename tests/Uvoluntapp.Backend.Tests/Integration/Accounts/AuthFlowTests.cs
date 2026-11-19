@@ -397,6 +397,69 @@ public sealed class AuthFlowTests(AuthFixture fixture) : IClassFixture<AuthFixtu
         Assert.Contains("ACCESS_EMAIL_CHANGED", actions);
     }
 
+    [Fact]
+    public async Task RejectedAccountSeesWhenItCanReapplyAndReappliesKeepingTheHistory()
+    {
+        using var client = fixture.Client();
+        var password = Guid.NewGuid().ToString("N");
+        var recent = await RejectedUserAsync(password, DateTime.UtcNow.AddHours(-2));
+        var login = await client.PostAsJsonAsync("login", new { email = recent, password });
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, login.StatusCode);
+        var problem = await login.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("urn:uvoluntapp:inactive-account", problem.GetProperty("type").GetString());
+        Assert.Equal("REJECTED", problem.GetProperty("accountStatus").GetString());
+        Assert.Equal("Sin vínculo", problem.GetProperty("rejectionReason").GetString());
+        Assert.True(problem.TryGetProperty("reapplyAvailableAt", out _));
+        var tooEarly = await client.PostAsJsonAsync("reapply", Reapplication(recent, password));
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, tooEarly.StatusCode);
+        Assert.Equal("urn:uvoluntapp:reapply-too-early", (await tooEarly.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("type").GetString());
+
+        var old = await RejectedUserAsync(password, DateTime.UtcNow.AddDays(-2));
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("reapply", Reapplication(old, "otra-clave-999"))).StatusCode);
+        (await client.PostAsJsonAsync("reapply", Reapplication(old, password))).EnsureSuccessStatusCode();
+
+        await using var db = fixture.Context();
+        var user = await db.Users.SingleAsync(u => u.Email == old);
+        Assert.Equal(AccountStatus.PENDING_APPROVAL, user.Status);
+        var requests = await db.AccountApprovalRequests.Where(r => r.UserId == user.Id).OrderBy(r => r.CreatedAt).ToListAsync();
+        Assert.Equal(2, requests.Count);
+        Assert.Equal(AccountApprovalStatus.REJECTED, requests[0].Status);
+        Assert.Equal("Catequista", requests[1].Relationship);
+    }
+
+    private static object Reapplication(string email, string password) =>
+        new { email, password, firstName = "Ana", lastName = "Paz", phone = "70000000", relationWithPastoral = "Catequista" };
+
+    private async Task<string> RejectedUserAsync(string password, DateTime reviewedAt)
+    {
+        var email = $"{Guid.NewGuid():N}@example.org";
+        var user = new Uvoluntapp.Backend.Infrastructure.Identity.AppUser
+        {
+            Id = Guid.NewGuid(),
+            UserName = email,
+            NormalizedUserName = email.ToUpperInvariant(),
+            Email = email,
+            NormalizedEmail = email.ToUpperInvariant(),
+            EmailConfirmed = true,
+            Status = AccountStatus.REJECTED,
+            SecurityStamp = Guid.NewGuid().ToString(),
+        };
+        user.PasswordHash = new Microsoft.AspNetCore.Identity.PasswordHasher<Uvoluntapp.Backend.Infrastructure.Identity.AppUser>().HashPassword(user, password);
+        await using var db = fixture.Context();
+        db.Users.Add(user);
+        var request = new Uvoluntapp.Backend.Domain.Entities.Accounts.AccountApprovalRequest
+        {
+            UserId = user.Id,
+            FirstName = "Ana",
+            LastName = "Paz",
+            Relationship = "Voluntaria",
+        };
+        request.Reject(user.Id, "Sin vínculo", reviewedAt);
+        db.AccountApprovalRequests.Add(request);
+        await db.SaveChangesAsync();
+        return email;
+    }
+
     private async Task<string> GoogleOnlyUserAsync(AccountStatus status)
     {
         var email = $"{Guid.NewGuid():N}@example.org";

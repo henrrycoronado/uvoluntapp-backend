@@ -22,9 +22,16 @@ public sealed class AccountExceptionFilter : IExceptionFilter
             AccountError.InvalidCode => (422, "Código inválido o vencido."),
             AccountError.TooManyAttempts => (429, "Límite de intentos excedido."),
             AccountError.PasswordSetupRequired => (409, "La cuenta aún no tiene contraseña. Enviamos un código a tu correo para crearla."),
+            AccountError.ReapplyTooEarly => (422, "Todavía no puedes enviar una nueva solicitud."),
             _ => throw new ArgumentOutOfRangeException(nameof(context))
         };
-        context.Result = new ObjectResult(new ProblemDetails { Type = TypeOf(error.Error), Title = title, Status = status })
+        var problem = new ProblemDetails { Type = TypeOf(error.Error), Title = title, Status = status };
+        foreach (var (key, value) in error.Extensions)
+        {
+            problem.Extensions[key] = value;
+        }
+
+        context.Result = new ObjectResult(problem)
         {
             StatusCode = status,
             ContentTypes = { "application/problem+json" }
@@ -33,6 +40,11 @@ public sealed class AccountExceptionFilter : IExceptionFilter
     }
 
     // La web distingue este 409 de un conflicto de registro por el tipo, no por el texto.
-    private static string TypeOf(AccountError error) =>
-        error == AccountError.PasswordSetupRequired ? "urn:uvoluntapp:password-setup-required" : "about:blank";
+    private static string TypeOf(AccountError error) => error switch
+    {
+        AccountError.PasswordSetupRequired => "urn:uvoluntapp:password-setup-required",
+        AccountError.InactiveAccount => "urn:uvoluntapp:inactive-account",
+        AccountError.ReapplyTooEarly => "urn:uvoluntapp:reapply-too-early",
+        _ => "about:blank",
+    };
 }

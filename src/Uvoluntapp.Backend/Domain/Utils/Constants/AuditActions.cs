@@ -23,4 +23,6 @@ public static class AuditActions
     public const string PasswordReset = "PASSWORD_RESET";
 
     public const string PasswordCreated = "PASSWORD_CREATED";
+
+    public const string AccountReapplied = "ACCOUNT_REAPPLIED";
 }
