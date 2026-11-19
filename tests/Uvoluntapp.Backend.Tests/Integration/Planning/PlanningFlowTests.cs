@@ -57,6 +57,11 @@ public sealed class PlanningFlowTests(AuthFixture fixture) : IClassFixture<AuthF
         Assert.Equal(HttpStatusCode.UnprocessableEntity, (await admin.Http.PostAsJsonAsync($"/api/v1/programs/{otherProgramId}/archive", new { reason = " " })).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await admin.Http.PostAsJsonAsync($"/api/v1/programs/{otherProgramId}/archive", new { reason = "Duplicado" })).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await leader.Http.GetAsync($"/api/v1/programs/{otherProgramId}")).StatusCode);
+
+        // Los rechazos quedan auditados con su motivo (SCRUM-50, criterio 6).
+        await using var db = fixture.Context();
+        Assert.True(await db.AuditEvents.AnyAsync(e => e.Action == "PLANNING_OPERATION_REJECTED" && e.ActorId == leader.UserId && e.ResourceId == otherProgramId));
+        Assert.True(await db.AuditEvents.AnyAsync(e => e.Action == "PLANNING_OPERATION_REJECTED" && e.ResourceId == otherProgramId && e.ActorId != leader.UserId && e.ActorId != operative.UserId));
     }
 
     [Fact]

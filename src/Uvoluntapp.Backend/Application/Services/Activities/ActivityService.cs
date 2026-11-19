@@ -326,7 +326,9 @@ public sealed class ActivityService(
         }
     }
 
-    private static string Describe(Activity activity) => $"{activity.StartsAt:yyyy-MM-dd HH:mm} a {activity.EndsAt:HH:mm} (UTC)";
+    // Bolivia no tiene horario de verano: UTC-4 todo el año.
+    private static string Describe(Activity activity) =>
+        $"{activity.StartsAt.AddHours(-4):dd/MM/yyyy HH:mm} a {activity.EndsAt.AddHours(-4):HH:mm} (hora de Bolivia)";
 
     /// <summary>
     /// Advertencias de solapamiento (SCRUM-54): mismo responsable (líder con asignación vigente que cubre ambas)
