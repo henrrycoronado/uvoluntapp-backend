@@ -11,5 +11,6 @@ public sealed record VerifyOtpResponse
     public bool RequiresApprovalData { get; init; }
 
     [JsonPropertyName("tokens")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public TokenPair? Tokens { get; init; }
 }

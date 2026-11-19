@@ -11,7 +11,7 @@ public sealed record VerifyOtpRequest
     public string Email { get; init; } = string.Empty;
 
     [Required]
-    [RegularExpression(@"^\d{6}$", ErrorMessage = "El código debe tener exactamente 6 dígitos.")]
+    [RegularExpression(@"^[0-9]{6}$", ErrorMessage = "El código debe tener exactamente 6 dígitos.")]
     [JsonPropertyName("code")]
     public string Code { get; init; } = string.Empty;
 }
