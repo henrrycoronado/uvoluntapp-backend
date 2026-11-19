@@ -17,20 +17,27 @@ public static class LeaderAssignmentPolicy
             && a.ScopeId == programId
             && a.IsActiveAt(atUtc));
 
+    // activityProgramId: programa de la actividad cuando el ámbito es ACTIVITY (delegación, SCRUM-122).
     public static bool CanAssign(
         IEnumerable<RoleAssignment> actorAssignments,
         AssignedRole role,
         RoleScope scope,
         Guid? scopeId,
+        Guid? activityProgramId,
         DateTime atUtc) =>
         role == AssignedRole.OPERATIONAL_LEADER
-        && scope == RoleScope.PROGRAM
-        && scopeId is { } programId
+        && ManagedProgram(scope, scopeId, activityProgramId) is { } programId
         && IsLeadingProgram(actorAssignments, programId, atUtc);
 
-    public static bool CanRevoke(IEnumerable<RoleAssignment> actorAssignments, RoleAssignment target, DateTime atUtc) =>
+    public static bool CanRevoke(IEnumerable<RoleAssignment> actorAssignments, RoleAssignment target, Guid? activityProgramId, DateTime atUtc) =>
         target.Role == AssignedRole.OPERATIONAL_LEADER
-        && target.Scope == RoleScope.PROGRAM
-        && target.ScopeId is { } programId
+        && ManagedProgram(target.Scope, target.ScopeId, activityProgramId) is { } programId
         && IsLeadingProgram(actorAssignments, programId, atUtc);
+
+    private static Guid? ManagedProgram(RoleScope scope, Guid? scopeId, Guid? activityProgramId) => scope switch
+    {
+        RoleScope.PROGRAM => scopeId,
+        RoleScope.ACTIVITY => activityProgramId,
+        _ => null,
+    };
 }

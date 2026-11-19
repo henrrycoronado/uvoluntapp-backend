@@ -1203,7 +1203,7 @@ paths:
 
     post:
       tags: [AcademicPeriods]
-      summary: Crear periodo académico
+      summary: "Reservado (no disponible en M2): Crear periodo académico"
       description: |
         Solo ADMIN. Etiqueta tipo `2026-1`.
         SCRUM-46.
@@ -1233,7 +1233,7 @@ paths:
   /academic-periods/{periodId}:
     get:
       tags: [AcademicPeriods]
-      summary: Consultar periodo académico
+      summary: "Reservado (no disponible en M2): Consultar periodo académico"
       operationId: getAcademicPeriod
       parameters:
         - $ref: '#/components/parameters/PeriodIdParam'
@@ -1251,7 +1251,7 @@ paths:
 
     put:
       tags: [AcademicPeriods]
-      summary: Actualizar periodo académico
+      summary: "Reservado (no disponible en M2): Actualizar periodo académico"
       description: Solo ADMIN. SCRUM-46.
       operationId: updateAcademicPeriod
       parameters:
@@ -1282,7 +1282,7 @@ paths:
 
     delete:
       tags: [AcademicPeriods]
-      summary: Eliminar periodo académico
+      summary: "Reservado (no disponible en M2): Eliminar periodo académico"
       description: |
         Solo ADMIN. Baja lógica con `deleted_at`.
         SCRUM-46.
@@ -1326,6 +1326,11 @@ paths:
           schema:
             type: string
             format: uuid
+        - name: includeArchived
+          in: query
+          required: false
+          schema:
+            type: boolean
       responses:
         '200':
           description: Lista paginada de programas
@@ -1485,6 +1490,17 @@ paths:
       operationId: archiveProgram
       parameters:
         - $ref: '#/components/parameters/ProgramIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  maxLength: 500
+              required: [reason]
       responses:
         '200':
           description: Programa archivado
@@ -1530,7 +1546,7 @@ paths:
 
     post:
       tags: [ProgramPeriods]
-      summary: Vincular un periodo a un programa
+      summary: "Reservado (no disponible en M2): Vincular un periodo a un programa"
       description: |
         Solo ADMIN o PROGRAM_LEADER asignado.
         Único por (programa, periodo).
@@ -1564,7 +1580,7 @@ paths:
   /programs/{programId}/periods/{programPeriodId}:
     delete:
       tags: [ProgramPeriods]
-      summary: Desvincular un periodo de un programa
+      summary: "Reservado (no disponible en M2): Desvincular un periodo de un programa"
       description: Solo ADMIN o PROGRAM_LEADER asignado.
       operationId: removeProgramPeriod
       parameters:
@@ -1590,6 +1606,30 @@ paths:
   # ──────────────────────────────────────────────
   # ACTIVITIES
   # ──────────────────────────────────────────────
+
+  /programs/{programId}/team:
+    get:
+      tags: [Programs]
+      summary: Equipo de líderes del programa
+      description: |
+        Líderes de programa y operativos con asignación vigente y sus delegaciones a actividades
+        del programa. Lo consultan ADMIN y líderes. Se gestiona con /role-assignments. SCRUM-122.
+      operationId: getProgramTeam
+      parameters:
+        - $ref: '#/components/parameters/ProgramIdParam'
+      responses:
+        '200':
+          description: Equipo
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProgramTeamMember'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /activities:
     get:
@@ -1622,6 +1662,21 @@ paths:
           description: Si true, solo actividades sin programa
           schema:
             type: boolean
+        - name: groupLabel
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: fromDate
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: toDate
+          in: query
+          required: false
+          schema:
+            type: string
       responses:
         '200':
           description: Lista paginada de actividades
@@ -1894,6 +1949,36 @@ paths:
   # CONFLICT CHECK (SCRUM-54)
   # ──────────────────────────────────────────────
 
+  /activities/{activityId}/move:
+    post:
+      tags: [Activities]
+      summary: Cambiar el programa de una actividad o volverla libre
+      description: |
+        Solo ADMIN, en cualquier estado, con motivo. Revoca las asignaciones sobre la actividad:
+        sus responsables pasan a ser los del destino. Queda auditado. SCRUM-123.
+      operationId: moveActivity
+      parameters:
+        - $ref: '#/components/parameters/ActivityIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoveActivityRequest'
+      responses:
+        '200':
+          description: Actividad reasignada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivityResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
   /activities/check-conflicts:
     post:
       tags: [Activities]
@@ -1954,6 +2039,24 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
+  /catalog/periods:
+    get:
+      tags: [Catalog]
+      summary: Periodos académicos para los filtros del catálogo
+      description: |
+        Público. En M2 los periodos se siembran por configuración (ACADEMIC_PERIODS) y no se gestionan. SCRUM-46.
+      operationId: listCatalogPeriods
+      security: []
+      responses:
+        '200':
+          description: Periodos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AcademicPeriodResponse'
+
   /catalog/activities:
     get:
       tags: [Catalog]
@@ -1992,6 +2095,16 @@ paths:
           schema:
             type: string
             format: date-time
+        - name: independent
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: groupLabel
+          in: query
+          required: false
+          schema:
+            type: string
       responses:
         '200':
           description: Actividades públicas
@@ -3088,6 +3201,14 @@ components:
         description:
           type: string
           nullable: true
+        contact:
+          type: string
+          nullable: true
+          maxLength: 300
+        referenceSchedule:
+          type: string
+          nullable: true
+          maxLength: 500
       required:
         - name
 
@@ -3099,6 +3220,14 @@ components:
         description:
           type: string
           nullable: true
+        contact:
+          type: string
+          nullable: true
+          maxLength: 300
+        referenceSchedule:
+          type: string
+          nullable: true
+          maxLength: 500
 
     ProgramResponse:
       type: object
@@ -3121,6 +3250,19 @@ components:
           type: string
           format: date-time
           nullable: true
+        contact:
+          type: string
+          nullable: true
+        referenceSchedule:
+          type: string
+          nullable: true
+        archivedAt:
+          type: string
+          format: date-time
+          nullable: true
+        canManage:
+          type: boolean
+          description: El actor puede gestionar este programa (ADMIN o líder asignado)
       required:
         - id
         - name
@@ -3216,6 +3358,27 @@ components:
           type: string
           nullable: true
           description: Nota orientativa de periodicidad (no genera ocurrencias)
+        meetingUrl:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: Obligatorio para publicar si la modalidad es VIRTUAL o HYBRID
+        requiresRegistration:
+          type: boolean
+          description: Requiere registro previo. Sin registro previo no hay cupo.
+        expectedHours:
+          type: number
+          nullable: true
+          description: Horas previstas, solo informativas
+        participationConditions:
+          type: string
+          nullable: true
+          maxLength: 2000
+        groupLabel:
+          type: string
+          nullable: true
+          maxLength: 100
+          description: Etiqueta para agrupar actividades libres
       required:
         - periodId
         - title
@@ -3247,6 +3410,34 @@ components:
         periodicityNote:
           type: string
           nullable: true
+        meetingUrl:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: Obligatorio para publicar si la modalidad es VIRTUAL o HYBRID
+        requiresRegistration:
+          type: boolean
+          description: Requiere registro previo. Sin registro previo no hay cupo.
+        expectedHours:
+          type: number
+          nullable: true
+          description: Horas previstas, solo informativas
+        participationConditions:
+          type: string
+          nullable: true
+          maxLength: 2000
+        groupLabel:
+          type: string
+          nullable: true
+          maxLength: 100
+          description: Etiqueta para agrupar actividades libres
+        startsAt:
+          type: string
+          format: date-time
+          description: Solo en DRAFT; publicada se reprograma
+        endsAt:
+          type: string
+          format: date-time
 
     ActivityResponse:
       type: object
@@ -3306,6 +3497,35 @@ components:
           type: string
           format: date-time
           nullable: true
+        meetingUrl:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: Obligatorio para publicar si la modalidad es VIRTUAL o HYBRID
+        requiresRegistration:
+          type: boolean
+          description: Requiere registro previo. Sin registro previo no hay cupo.
+        expectedHours:
+          type: number
+          nullable: true
+          description: Horas previstas, solo informativas
+        participationConditions:
+          type: string
+          nullable: true
+          maxLength: 2000
+        groupLabel:
+          type: string
+          nullable: true
+          maxLength: 100
+          description: Etiqueta para agrupar actividades libres
+        programName:
+          type: string
+          nullable: true
+        canManage:
+          type: boolean
+        canMove:
+          type: boolean
+          description: Solo ADMIN (SCRUM-123)
       required:
         - id
         - periodId
@@ -3417,6 +3637,35 @@ components:
 
     # ── Conflict Check ──
 
+    MoveActivityRequest:
+      type: object
+      properties:
+        programId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Programa destino; vacío convierte la actividad en libre
+        reason:
+          type: string
+          maxLength: 500
+      required: [reason]
+
+    ProgramTeamMember:
+      type: object
+      properties:
+        assignmentId: {type: string, format: uuid}
+        userId: {type: string, format: uuid}
+        fullName: {type: string}
+        email: {type: string}
+        role: {type: string, enum: [PROGRAM_LEADER, OPERATIONAL_LEADER]}
+        scope: {type: string, enum: [PROGRAM, ACTIVITY]}
+        scopeId: {type: string, format: uuid}
+        activityTitle: {type: string, nullable: true}
+        validFrom: {type: string, format: date-time, nullable: true}
+        validUntil: {type: string, format: date-time, nullable: true}
+        grantedBy: {type: string, format: uuid}
+      required: [assignmentId, userId, fullName, role, scope, scopeId]
+
     CheckConflictsRequest:
       type: object
       properties:
@@ -3434,6 +3683,11 @@ components:
         location:
           type: string
           nullable: true
+        programId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Programa de una actividad nueva (define sus responsables)
       required:
         - startsAt
         - endsAt
@@ -3481,6 +3735,12 @@ components:
         name:
           type: string
         description:
+          type: string
+          nullable: true
+        contact:
+          type: string
+          nullable: true
+        referenceSchedule:
           type: string
           nullable: true
       required:
@@ -3537,6 +3797,20 @@ components:
           type: string
           enum: [PUBLISHED, IN_PROGRESS]
         periodicityNote:
+          type: string
+          nullable: true
+        periodId:
+          type: string
+          format: uuid
+        groupLabel:
+          type: string
+          nullable: true
+        requiresRegistration:
+          type: boolean
+        expectedHours:
+          type: number
+          nullable: true
+        participationConditions:
           type: string
           nullable: true
       required:

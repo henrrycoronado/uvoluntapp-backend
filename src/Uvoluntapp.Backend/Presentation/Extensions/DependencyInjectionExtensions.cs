@@ -2,12 +2,14 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
 using Uvoluntapp.Backend.Application.Interfaces.Accounts;
+using Uvoluntapp.Backend.Application.Interfaces.Activities;
 using Uvoluntapp.Backend.Application.Interfaces.Administration;
 using Uvoluntapp.Backend.Application.Interfaces.Audit;
 using Uvoluntapp.Backend.Application.Interfaces.Common;
 using Uvoluntapp.Backend.Application.Interfaces.Profiles;
 using Uvoluntapp.Backend.Application.Interfaces.Programs;
 using Uvoluntapp.Backend.Application.Services.Accounts;
+using Uvoluntapp.Backend.Application.Services.Activities;
 using Uvoluntapp.Backend.Application.Services.Administration;
 using Uvoluntapp.Backend.Application.Services.Audit;
 using Uvoluntapp.Backend.Application.Services.Authorization;
@@ -16,6 +18,7 @@ using Uvoluntapp.Backend.Application.Services.Programs;
 using Uvoluntapp.Backend.Infrastructure.Auth;
 using Uvoluntapp.Backend.Infrastructure.Email;
 using Uvoluntapp.Backend.Infrastructure.Identity;
+using Uvoluntapp.Backend.Infrastructure.Jobs;
 using Uvoluntapp.Backend.Infrastructure.Persistence;
 using Uvoluntapp.Backend.Infrastructure.Persistence.Repositories;
 using Uvoluntapp.Backend.Infrastructure.Persistence.Seeders;
@@ -46,6 +49,9 @@ public static class DependencyInjectionExtensions
         services.AddIdentityCore<AppUser>(AccountIdentityOptions.Configure).AddEntityFrameworkStores<AppDbContext>();
         services.AddHostedService<DatabaseInitializer>();
 
+        // Después de las migraciones: inicia las actividades publicadas al llegar su horario (SCRUM-50).
+        services.AddHostedService<ActivityStartWorker>();
+
         // Infraestructura externa.
         services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(
             configuration["REDIS_CONNECTION_STRING"] ?? throw new InvalidOperationException("Falta REDIS_CONNECTION_STRING.")));
@@ -74,7 +80,9 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IRecoveryAccountStore, RecoveryAccountStore>();
         services.AddScoped<IProfileStore, ProfileStore>();
         services.AddScoped<IAuditEventStore, AuditEventStore>();
-        services.AddScoped<IProgramReader, ProgramReader>();
+        services.AddScoped<IProgramStore, ProgramStore>();
+        services.AddScoped<IAcademicPeriodStore, AcademicPeriodStore>();
+        services.AddScoped<IActivityStore, ActivityStore>();
 
         // Reglas de aplicación sin estado.
         services.AddSingleton<ContextAuthorizationService>();
@@ -93,7 +101,11 @@ public static class DependencyInjectionExtensions
         services.AddScoped<AccountApprovalAdminService>();
         services.AddScoped<UserAdministrationService>();
         services.AddScoped<ProfileApplicationService>();
-        services.AddScoped<ProgramQueryService>();
+        services.AddScoped<PlanningAccess>();
+        services.AddScoped<ProgramService>();
+        services.AddScoped<ActivityService>();
+        services.AddScoped<ActivityStarter>();
+        services.AddScoped<CatalogService>();
 
         var allowedOrigins = (configuration["CORS_ALLOWED_ORIGINS"] ?? "http://localhost:5173")
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);

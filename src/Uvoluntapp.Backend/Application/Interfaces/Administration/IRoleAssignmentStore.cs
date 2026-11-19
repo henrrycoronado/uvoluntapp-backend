@@ -16,5 +16,12 @@ public interface IRoleAssignmentStore
 
     Task<IReadOnlyList<Guid>> ListActiveAdminUserIdsAsync(DateTime atUtc, CancellationToken cancellationToken = default);
 
+    // Asignaciones vigentes de líderes sobre esos programas o actividades (responsables, SCRUM-54).
+    Task<IReadOnlyList<RoleAssignment>> ListActiveForScopesAsync(
+        IReadOnlyCollection<Guid> programIds,
+        IReadOnlyCollection<Guid> activityIds,
+        DateTime atUtc,
+        CancellationToken cancellationToken = default);
+
     Task AddAsync(RoleAssignment assignment, CancellationToken cancellationToken = default);
 }

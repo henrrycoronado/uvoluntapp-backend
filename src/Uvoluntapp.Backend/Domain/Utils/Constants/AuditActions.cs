@@ -31,4 +31,32 @@ public static class AuditActions
     public const string AccountUnverified = "ACCOUNT_UNVERIFIED";
 
     public const string AccessEmailReplacedByAdmin = "ACCESS_EMAIL_REPLACED_BY_ADMIN";
+
+    public const string ProgramCreated = "PROGRAM_CREATED";
+
+    public const string ProgramUpdated = "PROGRAM_UPDATED";
+
+    public const string ProgramActivated = "PROGRAM_ACTIVATED";
+
+    public const string ProgramDeactivated = "PROGRAM_DEACTIVATED";
+
+    public const string ProgramArchived = "PROGRAM_ARCHIVED";
+
+    public const string ActivityCreated = "ACTIVITY_CREATED";
+
+    public const string ActivityUpdated = "ACTIVITY_UPDATED";
+
+    public const string ActivityPublished = "ACTIVITY_PUBLISHED";
+
+    public const string ActivityStarted = "ACTIVITY_STARTED";
+
+    public const string ActivityFinished = "ACTIVITY_FINISHED";
+
+    public const string ActivityCancelled = "ACTIVITY_CANCELLED";
+
+    public const string ActivityDiscarded = "ACTIVITY_DISCARDED";
+
+    public const string ActivityRescheduled = "ACTIVITY_RESCHEDULED";
+
+    public const string ActivityMoved = "ACTIVITY_MOVED";
 }

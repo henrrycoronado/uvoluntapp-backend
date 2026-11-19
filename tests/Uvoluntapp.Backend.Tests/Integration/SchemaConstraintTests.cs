@@ -50,7 +50,7 @@ public sealed class SchemaConstraintTests(PostgresFixture fixture) : IClassFixtu
     {
         await using var db = fixture.CreateContext();
         var program = db.Programs.Add(new VolunteerProgram()).Entity;
-        var period = db.AcademicPeriods.Add(new AcademicPeriod()).Entity;
+        var period = db.AcademicPeriods.Add(new AcademicPeriod { Label = Guid.NewGuid().ToString("N")[..12] }).Entity;
         db.ProgramPeriods.Add(new ProgramPeriod { ProgramId = program.Id, AcademicPeriodId = period.Id });
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();
@@ -63,7 +63,7 @@ public sealed class SchemaConstraintTests(PostgresFixture fixture) : IClassFixtu
     public async Task ActivityRequiresItsProgramToBeLinkedToItsPeriod()
     {
         await using var db = fixture.CreateContext();
-        var period = db.AcademicPeriods.Add(new AcademicPeriod()).Entity;
+        var period = db.AcademicPeriods.Add(new AcademicPeriod { Label = Guid.NewGuid().ToString("N")[..12] }).Entity;
         var program = db.Programs.Add(new VolunteerProgram()).Entity;
         var activity = db.Activities.Add(new Activity
         {
@@ -147,7 +147,7 @@ public sealed class SchemaConstraintTests(PostgresFixture fixture) : IClassFixtu
     public async Task ActivityRejectsInvalidScheduleOrCapacity(int hours, int capacity, string constraint)
     {
         await using var db = fixture.CreateContext();
-        var period = db.AcademicPeriods.Add(new AcademicPeriod()).Entity;
+        var period = db.AcademicPeriods.Add(new AcademicPeriod { Label = Guid.NewGuid().ToString("N")[..12] }).Entity;
         var start = DateTime.UtcNow;
         db.Activities.Add(new Activity
         {
@@ -155,6 +155,7 @@ public sealed class SchemaConstraintTests(PostgresFixture fixture) : IClassFixtu
             Modality = ActivityModality.IN_PERSON,
             StartsAt = start,
             EndsAt = start.AddHours(hours),
+            RequiresRegistration = true,
             Capacity = capacity
         });
 
@@ -206,7 +207,7 @@ public sealed class SchemaConstraintTests(PostgresFixture fixture) : IClassFixtu
         await using var db = fixture.CreateContext();
         var start = DateTime.UtcNow;
         var user = db.Users.Add(new AppUser()).Entity;
-        var period = db.AcademicPeriods.Add(new AcademicPeriod()).Entity;
+        var period = db.AcademicPeriods.Add(new AcademicPeriod { Label = Guid.NewGuid().ToString("N")[..12] }).Entity;
         var activity = db.Activities.Add(new Activity
         {
             AcademicPeriodId = period.Id,
