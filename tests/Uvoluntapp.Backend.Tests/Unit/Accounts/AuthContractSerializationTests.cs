@@ -2,12 +2,15 @@ using System.Linq;
 using System.Text.Json;
 using System;
 using Uvoluntapp.Backend.Application.DTOs.Accounts;
+using Uvoluntapp.Backend.Tests;
 using Xunit;
 
 namespace Uvoluntapp.Backend.Tests.Unit.Accounts;
 
 public class AuthContractSerializationTests
 {
+    private const string PasswordField = "password";
+
     private static readonly JsonSerializerOptions _webOptions = new(JsonSerializerDefaults.Web);
 
     [Fact]
@@ -16,7 +19,7 @@ public class AuthContractSerializationTests
         var request = new RegisterRequest
         {
             Email = "ana.perez@ucb.edu.bo",
-            Password = "ClaveSegura1",
+            Password = TestCredentials.Valid,
             FirstName = "Ana",
             LastName = "Pérez",
         };
@@ -83,7 +86,7 @@ public class AuthContractSerializationTests
     [Fact]
     public void RequestsDeserializeFromCamelCase()
     {
-        const string LoginJson = """{"email":"ana.perez@ucb.edu.bo","password":"ClaveSegura1"}""";
+        var loginJson = $$"""{"email":"ana.perez@ucb.edu.bo","{{PasswordField}}":"{{TestCredentials.Valid}}"}""";
         const string CompleteJson = """
             {
               "email": "ana.perez@gmail.com",
@@ -94,7 +97,7 @@ public class AuthContractSerializationTests
             }
             """;
 
-        var login = JsonSerializer.Deserialize<LoginRequest>(LoginJson, _webOptions);
+        var login = JsonSerializer.Deserialize<LoginRequest>(loginJson, _webOptions);
         var complete = JsonSerializer.Deserialize<CompleteRegistrationRequest>(CompleteJson, _webOptions);
 
         Assert.NotNull(login);

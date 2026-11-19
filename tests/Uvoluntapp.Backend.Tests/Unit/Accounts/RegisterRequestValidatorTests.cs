@@ -4,6 +4,7 @@ using System.Linq;
 using System;
 using Uvoluntapp.Backend.Application.DTOs.Accounts;
 using Uvoluntapp.Backend.Application.Validators.Accounts;
+using Uvoluntapp.Backend.Tests;
 using Xunit;
 
 namespace Uvoluntapp.Backend.Tests.Unit.Accounts;
@@ -40,7 +41,7 @@ public class RegisterRequestValidatorTests
     [Fact]
     public void RejectsPasswordShorterThanEightCharacters()
     {
-        var request = ValidRequest() with { Password = "corta1" };
+        var request = ValidRequest() with { Password = TestCredentials.TooShort() };
 
         AssertHasError(RegisterRequestValidator.Validate(request), nameof(RegisterRequest.Password));
     }
@@ -67,7 +68,7 @@ public class RegisterRequestValidatorTests
     private static RegisterRequest ValidRequest() => new()
     {
         Email = "ana.perez@ucb.edu.bo",
-        Password = "ClaveSegura1",
+        Password = TestCredentials.Valid,
         FirstName = "Ana",
         LastName = "Pérez",
     };

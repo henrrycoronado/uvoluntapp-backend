@@ -481,3 +481,8 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Archivos locales de agentes y scripts de prueba: no se versionan
+CLAUDE.md
+AGENTS.md
+scripts/
