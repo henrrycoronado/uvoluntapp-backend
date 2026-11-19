@@ -25,4 +25,10 @@ public static class AuditActions
     public const string PasswordCreated = "PASSWORD_CREATED";
 
     public const string AccountReapplied = "ACCOUNT_REAPPLIED";
+
+    public const string AccountVerified = "ACCOUNT_VERIFIED";
+
+    public const string AccountUnverified = "ACCOUNT_UNVERIFIED";
+
+    public const string AccessEmailReplacedByAdmin = "ACCESS_EMAIL_REPLACED_BY_ADMIN";
 }

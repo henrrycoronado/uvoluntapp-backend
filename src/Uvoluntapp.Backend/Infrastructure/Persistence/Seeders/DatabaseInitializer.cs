@@ -95,6 +95,7 @@ public sealed class DatabaseInitializer(
                 EmailConfirmed = true,
                 Status = AccountStatus.ACTIVE,
                 CreatedAt = DateTime.UtcNow,
+                VerifiedAt = DateTime.UtcNow,
             };
             var created = await users.CreateAsync(user, password);
             if (!created.Succeeded)

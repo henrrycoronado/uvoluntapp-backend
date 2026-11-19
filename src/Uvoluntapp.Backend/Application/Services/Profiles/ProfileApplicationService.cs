@@ -7,6 +7,7 @@ using Uvoluntapp.Backend.Application.Interfaces.Common;
 using Uvoluntapp.Backend.Application.Interfaces.Profiles;
 using Uvoluntapp.Backend.Application.Services.Accounts;
 using Uvoluntapp.Backend.Application.Services.Audit;
+using Uvoluntapp.Backend.Domain.Entities.Accounts;
 using Uvoluntapp.Backend.Domain.Utils.Constants;
 
 namespace Uvoluntapp.Backend.Application.Services.Profiles;
@@ -44,7 +45,8 @@ public sealed class ProfileApplicationService(
             user.InstitutionalEmailVerifiedAt,
             user.Status.ToString(),
             assignments.Select(RoleAssignmentResponse.From).ToList(),
-            user.CreatedAt);
+            user.CreatedAt,
+            user.VerifiedAt);
     }
 
     public async Task<ProfileDetailResponse> UpdateAsync(
@@ -92,6 +94,20 @@ public sealed class ProfileApplicationService(
         var now = clock.GetUtcNow();
         var result = await emails.ConfirmEmailChangeAsync(userId, request.Code, now, cancellationToken);
         await accounts.RevokeSessionsAsync(result.SessionIdsToRevoke, now.UtcDateTime, cancellationToken);
+
+        // Solo un correo de acceso institucional mantiene la cuenta verificada; otro queda para revisión manual del ADMIN.
+        var before = await accounts.FindAsync(userId, cancellationToken);
+        var institutional = InstitutionalEmailDomain.IsInstitutional(result.Email);
+        if (institutional)
+        {
+            await accounts.SetVerificationAsync(userId, before?.VerifiedAt ?? now.UtcDateTime, before?.VerifiedBy, cancellationToken);
+        }
+        else if (before?.VerifiedAt is not null)
+        {
+            await accounts.SetVerificationAsync(userId, null, null, cancellationToken);
+            await audit.RecordSystemAsync(AuditActions.AccountUnverified, AuditResourceTypes.User, userId, null, now.UtcDateTime, cancellationToken);
+        }
+
         await audit.RecordAsync(
             userId,
             AuditActions.AccessEmailChanged,
@@ -124,6 +140,12 @@ public sealed class ProfileApplicationService(
     {
         var now = clock.GetUtcNow();
         await emails.ConfirmInstitutionalEmailAsync(userId, request.Code, now, cancellationToken);
+        var current = await accounts.FindAsync(userId, cancellationToken);
+        if (current?.VerifiedAt is null)
+        {
+            await accounts.SetVerificationAsync(userId, now.UtcDateTime, null, cancellationToken);
+        }
+
         await audit.RecordAsync(userId, AuditActions.InstitutionalEmailVerified, AuditResourceTypes.User, userId, null, now.UtcDateTime, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return "Correo institucional verificado.";

@@ -11,4 +11,6 @@ public sealed record UserDetailResponse(
     string AccountStatus,
     IReadOnlyList<RoleAssignmentResponse> Roles,
     DateTime CreatedAt,
-    DateTime? SuspendedAt);
+    DateTime? SuspendedAt,
+    DateTime? VerifiedAt = null,
+    Guid? VerifiedBy = null);

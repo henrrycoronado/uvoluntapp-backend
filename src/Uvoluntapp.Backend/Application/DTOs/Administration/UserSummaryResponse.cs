@@ -6,4 +6,5 @@ public sealed record UserSummaryResponse(
     string FirstName,
     string LastName,
     string AccountStatus,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    DateTime? VerifiedAt = null);

@@ -11,6 +11,11 @@ public sealed class AppUser : IdentityUser<Guid>
 
     public DateTime? InstitutionalEmailVerifiedAt { get; set; }
 
+    // Verificación de la cuenta: automática con un correo institucional (VerifiedBy null) o manual de un ADMIN.
+    public DateTime? VerifiedAt { get; set; }
+
+    public Guid? VerifiedBy { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? SuspendedAt { get; set; }

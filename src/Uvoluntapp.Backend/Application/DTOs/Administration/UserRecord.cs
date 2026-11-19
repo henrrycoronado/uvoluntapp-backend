@@ -12,4 +12,6 @@ public sealed record UserRecord(
     DateTime? InstitutionalEmailVerifiedAt,
     AccountStatus Status,
     DateTime CreatedAt,
-    DateTime? SuspendedAt);
+    DateTime? SuspendedAt,
+    DateTime? VerifiedAt = null,
+    Guid? VerifiedBy = null);
