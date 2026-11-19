@@ -52,6 +52,7 @@ public sealed class GoogleAccountStore(AppDbContext db) : IGoogleAccountStore
             Status = status,
             InstitutionalEmail = institutionalEmailVerified ? identity.Email : null,
             InstitutionalEmailVerifiedAt = institutionalEmailVerified ? now : null,
+            VerifiedAt = institutionalEmailVerified ? now : null,
             CreatedAt = now,
             SecurityStamp = Guid.NewGuid().ToString(),
         };

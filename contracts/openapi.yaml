@@ -1061,6 +1061,69 @@ paths:
         '409':
           $ref: '#/components/responses/Conflict'
 
+  /users/{userId}/verify:
+    post:
+      tags: [Users]
+      summary: Verificar manualmente una cuenta
+      description: |
+        Solo ADMIN. Para cuentas sin correo institucional que no quedaron verificadas
+        (por ejemplo tras cambiar el correo de acceso a uno externo). Queda auditado.
+        SCRUM-109.
+      operationId: verifyUser
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+      responses:
+        '200':
+          description: Cuenta verificada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /users/{userId}/change-email:
+    post:
+      tags: [Users]
+      summary: Reemplazar el correo de acceso de una cuenta
+      description: |
+        Solo ADMIN, con motivo obligatorio, para quien perdió el acceso a su correo.
+        Sin OTP. Revoca todas las sesiones; la persona recupera su contraseña con el correo nuevo.
+        La cuenta queda verificada solo si el correo nuevo es institucional. Queda auditado.
+        SCRUM-109.
+      operationId: changeUserEmail
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangeUserEmailRequest'
+      responses:
+        '200':
+          description: Correo reemplazado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
   # ──────────────────────────────────────────────
   # AUDIT EVENTS
   # ──────────────────────────────────────────────
@@ -2704,6 +2767,11 @@ components:
         createdAt:
           type: string
           format: date-time
+        verifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Cuenta verificada (correo institucional o ADMIN); null si falta verificación manual
       required:
         - id
         - email
@@ -2787,6 +2855,11 @@ components:
         createdAt:
           type: string
           format: date-time
+        verifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Cuenta verificada (correo institucional o ADMIN); null si falta verificación manual
       required:
         - id
         - email
@@ -2846,6 +2919,11 @@ components:
           type: string
           format: date-time
           nullable: true
+        verifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Cuenta verificada (correo institucional o ADMIN); null si falta verificación manual
       required:
         - id
         - email
@@ -2854,6 +2932,18 @@ components:
         - accountStatus
         - roles
         - createdAt
+
+    ChangeUserEmailRequest:
+      type: object
+      properties:
+        newEmail:
+          type: string
+          format: email
+          maxLength: 256
+        reason:
+          type: string
+          maxLength: 500
+      required: [newEmail, reason]
 
     SuspendUserRequest:
       type: object

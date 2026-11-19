@@ -58,6 +58,52 @@ public sealed class AccountDirectory(AppDbContext db) : IAccountDirectory
         return new PagedResult<UserRecord>(items, page, pageSize, total);
     }
 
+    public async Task SetVerificationAsync(
+        Guid userId,
+        DateTime? verifiedAt,
+        Guid? verifiedBy,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken)
+            ?? throw new NotFoundException("La cuenta no existe.");
+        user.VerifiedAt = verifiedAt;
+        user.VerifiedBy = verifiedAt is null ? null : verifiedBy;
+    }
+
+    public async Task<bool> ReplaceAccessEmailAsync(
+        Guid userId,
+        string newEmail,
+        DateTime now,
+        CancellationToken cancellationToken = default)
+    {
+        var email = newEmail.Trim();
+        var normalized = email.ToUpperInvariant();
+        var taken = await db.Users.AnyAsync(
+            u => u.Id != userId
+                && (u.NormalizedEmail == normalized || (u.InstitutionalEmail != null && u.InstitutionalEmail.ToUpper() == normalized)),
+            cancellationToken);
+        if (taken)
+        {
+            return false;
+        }
+
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken)
+            ?? throw new NotFoundException("La cuenta no existe.");
+        user.Email = email;
+        user.UserName = email;
+        user.NormalizedEmail = normalized;
+        user.NormalizedUserName = normalized;
+        user.EmailConfirmed = true;
+        user.SecurityStamp = Guid.NewGuid().ToString();
+        var sessions = await db.AuthSessions.Where(s => s.UserId == userId && s.RevokedAt == null).ToListAsync(cancellationToken);
+        foreach (var session in sessions)
+        {
+            session.Revoke(now);
+        }
+
+        return true;
+    }
+
     public async Task SetStatusAsync(
         Guid userId,
         AccountStatus status,
@@ -97,5 +143,7 @@ public sealed class AccountDirectory(AppDbContext db) : IAccountDirectory
         user.InstitutionalEmailVerifiedAt,
         user.Status,
         user.CreatedAt,
-        user.SuspendedAt);
+        user.SuspendedAt,
+        user.VerifiedAt,
+        user.VerifiedBy);
 }
