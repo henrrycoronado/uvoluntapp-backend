@@ -1,8 +1,11 @@
 using System;
-using Uvoluntapp.Backend.Application.Authorization;
-using Uvoluntapp.Backend.Domain.Accounts;
+
 using Xunit;
 
+using Uvoluntapp.Backend.Application.DTOs.Authorization;
+using Uvoluntapp.Backend.Application.Services.Authorization;
+using Uvoluntapp.Backend.Domain.Entities.Accounts;
+using Uvoluntapp.Backend.Domain.Utils.Enums;
 namespace Uvoluntapp.Backend.Tests.Unit.Authorization;
 
 public class RoleAssignmentAuthorizationTests

@@ -1,7 +1,8 @@
 using System;
-using Uvoluntapp.Backend.Application.Audit;
+
 using Xunit;
 
+using Uvoluntapp.Backend.Application.DTOs.Audit;
 namespace Uvoluntapp.Backend.Tests.Unit.Audit;
 
 public class AuditEventFilterTests

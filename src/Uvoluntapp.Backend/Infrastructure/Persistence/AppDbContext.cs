@@ -2,13 +2,14 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using Uvoluntapp.Backend.Application.Common;
-using Uvoluntapp.Backend.Domain;
-using Uvoluntapp.Backend.Domain.Accounts;
-using Uvoluntapp.Backend.Domain.Activities;
-using Uvoluntapp.Backend.Domain.Programs;
+using Uvoluntapp.Backend.Application.Interfaces.Common;
+using Uvoluntapp.Backend.Domain.Entities.Accounts;
+using Uvoluntapp.Backend.Domain.Entities.Activities;
+using Uvoluntapp.Backend.Domain.Entities.Audit;
+using Uvoluntapp.Backend.Domain.Entities.Common;
+using Uvoluntapp.Backend.Domain.Entities.Programs;
 using Uvoluntapp.Backend.Infrastructure.Identity;
-using Uvoluntapp.Backend.Infrastructure.Records;
+using Uvoluntapp.Backend.Infrastructure.Persistence.Records;
 
 namespace Uvoluntapp.Backend.Infrastructure.Persistence;
 

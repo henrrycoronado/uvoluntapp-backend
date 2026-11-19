@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Uvoluntapp.Backend.Application.Administration.Contracts;
-using Uvoluntapp.Backend.Application.Programs.Contracts;
-using Uvoluntapp.Backend.Application.Programs.Services;
-using Uvoluntapp.Backend.Domain.Programs;
-using Uvoluntapp.Backend.Presentation.Common;
+using Uvoluntapp.Backend.Application.DTOs.Administration;
+using Uvoluntapp.Backend.Application.DTOs.Programs;
+using Uvoluntapp.Backend.Application.Services.Programs;
+using Uvoluntapp.Backend.Domain.Utils.Enums;
+using Uvoluntapp.Backend.Presentation.Helpers;
 
 namespace Uvoluntapp.Backend.Presentation.Controllers;
 

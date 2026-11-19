@@ -1,6 +1,6 @@
-using Uvoluntapp.Backend.Domain.Accounts;
 using Xunit;
 
+using Uvoluntapp.Backend.Domain.Utils.Constants;
 namespace Uvoluntapp.Backend.Tests.Unit.Accounts.Email;
 
 public class InstitutionalEmailDomainTests

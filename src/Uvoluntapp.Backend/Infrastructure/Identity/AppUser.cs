@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Identity;
-using Uvoluntapp.Backend.Domain.Accounts;
+using Uvoluntapp.Backend.Domain.Utils.Enums;
 
 namespace Uvoluntapp.Backend.Infrastructure.Identity;
 

@@ -1,7 +1,9 @@
 using System;
-using Uvoluntapp.Backend.Domain.Accounts;
+
 using Xunit;
 
+using Uvoluntapp.Backend.Domain.Entities.Accounts;
+using Uvoluntapp.Backend.Domain.Utils.Enums;
 namespace Uvoluntapp.Backend.Tests.Unit.Accounts.Email;
 
 public class PendingEmailVerificationTests

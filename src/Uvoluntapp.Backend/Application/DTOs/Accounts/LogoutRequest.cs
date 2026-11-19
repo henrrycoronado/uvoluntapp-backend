@@ -1,0 +1,12 @@
+using System.ComponentModel.DataAnnotations;
+
+using System.Text.Json.Serialization;
+
+namespace Uvoluntapp.Backend.Application.DTOs.Accounts;
+
+public sealed record LogoutRequest
+{
+    [Required]
+    [JsonPropertyName("refreshToken")]
+    public string RefreshToken { get; init; } = string.Empty;
+}

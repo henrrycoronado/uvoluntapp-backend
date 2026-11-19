@@ -1,9 +1,11 @@
-using System;
 using System.Security.Cryptography;
 using System.Text;
-using Uvoluntapp.Backend.Domain.Accounts;
+using System;
+
 using Xunit;
 
+using Uvoluntapp.Backend.Domain.Entities.Accounts;
+using Uvoluntapp.Backend.Domain.Utils.Enums;
 namespace Uvoluntapp.Backend.Tests.Unit;
 
 public class OneTimeCodeTests

@@ -10,10 +10,20 @@ Reglas para cualquier agente que trabaje en este repositorio. Las reglas de nego
 
 Dentro de `src/Uvoluntapp.Backend/`, cada tipo tiene un archivo con su nombre y su namespace sigue la carpeta. Crea las carpetas al añadir su primer tipo.
 
-- `Domain/`: entidades, invariantes, transiciones de estado. Sin dependencias de EF ni de ASP.NET.
-- `Application/`: casos de uso, DTOs, interfaces (puertos), autorización por contexto.
-- `Infrastructure/`: EF Core, repositorios, Identity, proveedores (Resend, R2, Google, Redis).
-- `Presentation/`: controladores o endpoints, middleware, extensiones de arranque.
+Estructura en capas tomada de `U-VoluntApp_Core`, sin modelos de persistencia duplicados ni mappers: EF Core mapea directamente las entidades de `Domain`. Dentro de cada carpeta, una subcarpeta por módulo (`Accounts`, `Administration`, `Audit`, `Authorization`, `Common`, `Profiles`, `Programs`, `Activities`).
+
+- `Domain/Entities/<Módulo>/`: entidades y objetos de valor, con sus invariantes. Sin dependencias de EF ni de ASP.NET.
+- `Domain/Policies/`: reglas que cruzan entidades (transiciones de estado, vinculación con Google, doble aprobación de ADMIN, asignación de líderes).
+- `Domain/Utils/{Enums,Constants,Exceptions}/`: enums, constantes y excepciones del dominio.
+- `Application/DTOs/<Módulo>/`: peticiones, respuestas y registros de lectura.
+- `Application/Interfaces/<Módulo>/`: puertos (almacenes, proveedores, sesiones) que implementa `Infrastructure`.
+- `Application/Services/<Módulo>/`: casos de uso y autorización por contexto.
+- `Application/Validators/<Módulo>/` y `Application/Exceptions/<Módulo>/`.
+- `Infrastructure/Persistence/`: `AppDbContext`, `Repositories/` (implementaciones de los puertos), `Records/`, `Seeders/` y `Migrations/`.
+- `Infrastructure/{Auth,Email,Identity}/`: sesiones, OTP, Google y límites; envío de correo; usuario de Identity.
+- `Presentation/{Controllers,Filters,Middleware,Helpers,Extensions}/`.
+
+Las interfaces de los repositorios viven en `Application/Interfaces` (no en `Infrastructure` como en el núcleo) para que `Application` no dependa de `Infrastructure`.
 
 ## Comandos
 - Compilar: `dotnet build Uvoluntapp.Backend.slnx`

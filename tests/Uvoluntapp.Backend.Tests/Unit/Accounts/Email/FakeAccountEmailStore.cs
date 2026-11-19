@@ -1,10 +1,11 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
-using Uvoluntapp.Backend.Application.Accounts.Email;
-using Uvoluntapp.Backend.Domain.Accounts;
+using System.Threading;
+using System;
+using Uvoluntapp.Backend.Application.Interfaces.Accounts;
+using Uvoluntapp.Backend.Domain.Entities.Accounts;
+using Uvoluntapp.Backend.Domain.Utils.Enums;
 
 namespace Uvoluntapp.Backend.Tests.Unit.Accounts.Email;
 
