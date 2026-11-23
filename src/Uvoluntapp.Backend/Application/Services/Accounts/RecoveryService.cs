@@ -29,7 +29,7 @@ public sealed class RecoveryService(
         {
             var generated = tokens.Create();
             await accounts.SaveTokenAsync(
-                PasswordRecoveryToken.Create(userId.Value, generated.TokenHash, clock.GetUtcNow().UtcDateTime),
+                PasswordRecoveryToken.Create(userId.Value, generated.TokenHash, clock.GetUtcNow().UtcDateTime, email),
                 cancellationToken);
             await emailSender.SendAsync(
                 request.Email.Trim(),
@@ -54,7 +54,7 @@ public sealed class RecoveryService(
         }
 
         // Revoca todas las sesiones de la cuenta y deja el evento en la auditoría.
-        await accounts.SetPasswordAsync(token.UserId, request.NewPassword, clock.GetUtcNow().UtcDateTime, cancellationToken);
+        await accounts.SetPasswordAsync(token, request.NewPassword, clock.GetUtcNow().UtcDateTime, cancellationToken);
         return new MessageResponse { Message = "Contraseña restablecida. Inicia sesión con la nueva." };
     }
 }

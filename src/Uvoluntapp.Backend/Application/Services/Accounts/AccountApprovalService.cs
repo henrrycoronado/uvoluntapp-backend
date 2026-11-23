@@ -49,7 +49,7 @@ public sealed class AccountApprovalService
 
         if (latest is not null && !latest.CanRequestAgainAt(now ?? DateTime.UtcNow))
         {
-            throw new InvalidOperationException("Debe transcurrir un día desde el rechazo.");
+            throw new InvalidOperationException("Deben transcurrir doce horas desde el rechazo.");
         }
 
         return new AccountApprovalRequest

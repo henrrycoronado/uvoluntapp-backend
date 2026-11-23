@@ -18,16 +18,16 @@ public sealed class ContextAuthorizationService
         }
 
         var now = request.AtUtc ?? DateTime.UtcNow;
-        var assignment = request.Assignments.FirstOrDefault(candidate =>
+        var assignments = request.Assignments.Where(candidate =>
             candidate.Role == request.RequiredRole &&
-            candidate.IsActiveAt(now));
+            candidate.IsActiveAt(now)).ToList();
 
-        if (assignment is null)
+        if (assignments.Count == 0)
         {
             return AuthorizationDecision.ASSIGNMENT_NOT_ACTIVE;
         }
 
-        if (!assignment.Covers(request.ResourceScope, request.ResourceId, request.ResourceProgramId))
+        if (!assignments.Any(a => a.Covers(request.ResourceScope, request.ResourceId, request.ResourceProgramId)))
         {
             return AuthorizationDecision.SCOPE_NOT_COVERED;
         }

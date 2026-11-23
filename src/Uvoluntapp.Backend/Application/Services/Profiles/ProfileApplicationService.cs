@@ -15,6 +15,7 @@ namespace Uvoluntapp.Backend.Application.Services.Profiles;
 /// <summary>Perfil propio y correos de la cuenta (SCRUM-59 y SCRUM-109).</summary>
 public sealed class ProfileApplicationService(
     IProfileStore profiles,
+    IMediaStore media,
     IAccountDirectory accounts,
     IRoleAssignmentStore roles,
     AccountEmailService emails,
@@ -46,7 +47,8 @@ public sealed class ProfileApplicationService(
             user.Status.ToString(),
             assignments.Select(RoleAssignmentResponse.From).ToList(),
             user.CreatedAt,
-            user.VerifiedAt);
+            user.VerifiedAt,
+            await media.FindAsync(Uvoluntapp.Backend.Domain.Utils.Enums.ImageOwner.Profile, userId, cancellationToken) != null);
     }
 
     public async Task<ProfileDetailResponse> UpdateAsync(
@@ -95,7 +97,7 @@ public sealed class ProfileApplicationService(
         var result = await emails.ConfirmEmailChangeAsync(userId, request.Code, now, cancellationToken);
         await accounts.RevokeSessionsAsync(result.SessionIdsToRevoke, now.UtcDateTime, cancellationToken);
 
-        // Solo un correo de acceso institucional mantiene la cuenta verificada; otro queda para revisión manual del ADMIN.
+        // Solo un correo de acceso institucional mantiene la cuenta verificada; el cambio a un correo externo queda auditado.
         var before = await accounts.FindAsync(userId, cancellationToken);
         var institutional = InstitutionalEmailDomain.IsInstitutional(result.Email);
         if (institutional)

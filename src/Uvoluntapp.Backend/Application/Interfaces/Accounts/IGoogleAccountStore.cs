@@ -14,6 +14,7 @@ public interface IGoogleAccountStore
         GoogleIdentity identity,
         AccountStatus status,
         bool institutionalEmailVerified,
+        string? phone,
         CancellationToken cancellationToken);
 
     // Indica si la cuenta ya envió su solicitud de aprobación.

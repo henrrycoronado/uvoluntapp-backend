@@ -13,4 +13,7 @@ public sealed record ProfileDetailResponse(
     string AccountStatus,
     IReadOnlyList<RoleAssignmentResponse> Roles,
     DateTime CreatedAt,
-    DateTime? VerifiedAt = null);
+    DateTime? VerifiedAt = null, bool ImagePresent = false)
+{
+    public string? ImageUrl => ImagePresent ? $"/api/v1/me/profile-image" : null;
+}

@@ -93,7 +93,19 @@ public sealed class AccountDirectory(AppDbContext db) : IAccountDirectory
         user.UserName = email;
         user.NormalizedEmail = normalized;
         user.NormalizedUserName = normalized;
-        user.EmailConfirmed = true;
+        user.EmailConfirmed = false;
+        user.ConcurrencyStamp = Guid.NewGuid().ToString();
+        user.PasswordHash = null;
+        var oldTokens = await db.PasswordRecoveryTokens.Where(t => t.UserId == userId && t.UsedAt == null).ToListAsync(cancellationToken);
+        foreach (var token in oldTokens)
+        {
+            token.TryConsume(now);
+        }
+
+        var oldVerifications = await db.PendingEmailVerifications.Where(v => v.UserId == userId).ToListAsync(cancellationToken);
+        db.PendingEmailVerifications.RemoveRange(oldVerifications);
+        var oldLogins = await db.UserLogins.Where(l => l.UserId == userId).ToListAsync(cancellationToken);
+        db.UserLogins.RemoveRange(oldLogins);
         user.SecurityStamp = Guid.NewGuid().ToString();
         var sessions = await db.AuthSessions.Where(s => s.UserId == userId && s.RevokedAt == null).ToListAsync(cancellationToken);
         foreach (var session in sessions)

@@ -24,7 +24,7 @@ public sealed class AccountVerificationTests(AuthFixture fixture) : IClassFixtur
         using var client = fixture.Client();
         var email = $"{Guid.NewGuid():N}@ucb.edu.bo";
         var password = Guid.NewGuid().ToString("N");
-        (await client.PostAsJsonAsync("register", new { email, password, firstName = "Ana", lastName = "Paz" })).EnsureSuccessStatusCode();
+        (await client.PostAsJsonAsync("register", new { email, password, firstName = "Ana", lastName = "Paz", phone = "70000000" })).EnsureSuccessStatusCode();
         var verified = await (await client.PostAsJsonAsync("verify-otp", new { email, code = fixture.Mail.Code(email) }))
             .Content.ReadFromJsonAsync<VerifyOtpResponse>();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", verified!.Tokens!.AccessToken);
@@ -44,17 +44,12 @@ public sealed class AccountVerificationTests(AuthFixture fixture) : IClassFixtur
     }
 
     [Fact]
-    public async Task AdminVerifiesManuallyAndReplacesALostAccessEmail()
+    public async Task AdminReplacesLostEmailWithoutManualVerification()
     {
         using var admin = await AdminClientAsync();
         var (userId, oldEmail, password) = await ExternalActiveUserAsync();
         using var person = fixture.Client();
         var login = await (await person.PostAsJsonAsync("login", new { email = oldEmail, password })).Content.ReadFromJsonAsync<TokenResponse>();
-
-        (await admin.PostAsync($"/api/v1/users/{userId}/verify", null)).EnsureSuccessStatusCode();
-        Assert.Equal(HttpStatusCode.Conflict, (await admin.PostAsync($"/api/v1/users/{userId}/verify", null)).StatusCode);
-        var detail = await (await admin.GetAsync($"/api/v1/users/{userId}")).Content.ReadFromJsonAsync<JsonElement>();
-        Assert.NotEqual(JsonValueKind.Null, detail.GetProperty("verifiedAt").ValueKind);
 
         var newEmail = $"{Guid.NewGuid():N}@gmail.com";
         Assert.Equal(
@@ -63,7 +58,11 @@ public sealed class AccountVerificationTests(AuthFixture fixture) : IClassFixtur
         (await admin.PostAsJsonAsync($"/api/v1/users/{userId}/change-email", new { newEmail, reason = "Egresado sin acceso al correo" })).EnsureSuccessStatusCode();
 
         Assert.False((await person.PostAsJsonAsync("refresh", new { refreshToken = login!.RefreshToken })).IsSuccessStatusCode);
-        Assert.True((await person.PostAsJsonAsync("login", new { email = newEmail, password })).IsSuccessStatusCode);
+        Assert.False((await person.PostAsJsonAsync("login", new { email = newEmail, password })).IsSuccessStatusCode);
+        var token = Uri.UnescapeDataString(fixture.Mail.Message(newEmail).Split("token=")[1]);
+        var newPassword = TestCredentials.NewValid();
+        (await person.PostAsJsonAsync("reset-password", new { token, newPassword })).EnsureSuccessStatusCode();
+        (await person.PostAsJsonAsync("login", new { email = newEmail, password = newPassword })).EnsureSuccessStatusCode();
         await using var db = fixture.Context();
         var user = await db.Users.SingleAsync(u => u.Id == userId);
         Assert.Null(user.VerifiedAt);

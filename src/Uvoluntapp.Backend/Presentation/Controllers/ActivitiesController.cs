@@ -73,9 +73,9 @@ public sealed class ActivitiesController(ActivityService activities) : Controlle
     public async Task<ActionResult<RescheduleActivityResponse>> Reschedule(Guid activityId, RescheduleActivityRequest request, CancellationToken cancellationToken) =>
         Ok(await activities.RescheduleAsync(CurrentUser.Id(User), activityId, request, cancellationToken));
 
-    [HttpPost("{activityId:guid}/move")]
-    public async Task<ActionResult<ActivityResponse>> Move(Guid activityId, MoveActivityRequest request, CancellationToken cancellationToken) =>
-        Ok(await activities.MoveAsync(CurrentUser.Id(User), activityId, request, cancellationToken));
+    [HttpPut("{activityId:guid}/participation")]
+    public async Task<ActionResult<ActivityResponse>> Configure(Guid activityId, ParticipationRequest request, CancellationToken cancellationToken) =>
+        Ok(await activities.ConfigureAsync(CurrentUser.Id(User), activityId, request, cancellationToken));
 
     [HttpPost("check-conflicts")]
     public async Task<ActionResult<CheckConflictsResponse>> CheckConflicts(CheckConflictsRequest request, CancellationToken cancellationToken) =>

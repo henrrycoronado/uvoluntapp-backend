@@ -45,44 +45,6 @@ public sealed class SchemaConstraintTests(PostgresFixture fixture) : IClassFixtu
         await AssertViolation(db, PostgresErrorCodes.ForeignKeyViolation, "FK_activities_academic_periods_period_id");
     }
 
-    [Fact]
-    public async Task ProgramPeriodRejectsDuplicatePair()
-    {
-        await using var db = fixture.CreateContext();
-        var program = db.Programs.Add(new VolunteerProgram()).Entity;
-        var period = db.AcademicPeriods.Add(new AcademicPeriod { Label = Guid.NewGuid().ToString("N")[..12] }).Entity;
-        db.ProgramPeriods.Add(new ProgramPeriod { ProgramId = program.Id, AcademicPeriodId = period.Id });
-        await db.SaveChangesAsync();
-        db.ChangeTracker.Clear();
-
-        db.ProgramPeriods.Add(new ProgramPeriod { ProgramId = program.Id, AcademicPeriodId = period.Id });
-        await AssertViolation(db, PostgresErrorCodes.UniqueViolation, "AK_program_periods_program_id_academic_period_id");
-    }
-
-    [Fact]
-    public async Task ActivityRequiresItsProgramToBeLinkedToItsPeriod()
-    {
-        await using var db = fixture.CreateContext();
-        var period = db.AcademicPeriods.Add(new AcademicPeriod { Label = Guid.NewGuid().ToString("N")[..12] }).Entity;
-        var program = db.Programs.Add(new VolunteerProgram()).Entity;
-        var activity = db.Activities.Add(new Activity
-        {
-            AcademicPeriodId = period.Id,
-            Modality = ActivityModality.VIRTUAL,
-            StartsAt = DateTime.UtcNow,
-            EndsAt = DateTime.UtcNow.AddHours(1)
-        }).Entity;
-        await db.SaveChangesAsync();
-
-        activity.ProgramId = program.Id;
-        await AssertViolation(db, PostgresErrorCodes.ForeignKeyViolation, "FK_activities_program_periods_program_id_period_id");
-
-        db.ProgramPeriods.Add(new ProgramPeriod { ProgramId = program.Id, AcademicPeriodId = period.Id });
-        await db.SaveChangesAsync();
-        db.ChangeTracker.Clear();
-        Assert.Equal(program.Id, (await db.Activities.SingleAsync(a => a.Id == activity.Id)).ProgramId);
-    }
-
     [Theory]
     [InlineData(RoleScope.GLOBAL, true)]
     [InlineData(RoleScope.PROGRAM, false)]
@@ -143,11 +105,11 @@ public sealed class SchemaConstraintTests(PostgresFixture fixture) : IClassFixtu
     [Theory]
     [InlineData(0, 1, "ck_activities_schedule")]
     [InlineData(-1, 1, "ck_activities_schedule")]
-    [InlineData(1, 0, "ck_activities_capacity")]
+    [InlineData(1, -1, "ck_activities_capacity")]
     public async Task ActivityRejectsInvalidScheduleOrCapacity(int hours, int capacity, string constraint)
     {
         await using var db = fixture.CreateContext();
-        var period = db.AcademicPeriods.Add(new AcademicPeriod { Label = Guid.NewGuid().ToString("N")[..12] }).Entity;
+        var period = await db.AcademicPeriods.SingleAsync(p => p.IsActive);
         var start = DateTime.UtcNow;
         db.Activities.Add(new Activity
         {
@@ -207,7 +169,7 @@ public sealed class SchemaConstraintTests(PostgresFixture fixture) : IClassFixtu
         await using var db = fixture.CreateContext();
         var start = DateTime.UtcNow;
         var user = db.Users.Add(new AppUser()).Entity;
-        var period = db.AcademicPeriods.Add(new AcademicPeriod { Label = Guid.NewGuid().ToString("N")[..12] }).Entity;
+        var period = await db.AcademicPeriods.SingleAsync(p => p.IsActive);
         var activity = db.Activities.Add(new Activity
         {
             AcademicPeriodId = period.Id,

@@ -253,10 +253,7 @@ public sealed class AuthFlowTests(AuthFixture fixture) : IClassFixture<AuthFixtu
         var email = await GoogleOnlyUserAsync(AccountStatus.ACTIVE);
         var password = Guid.NewGuid().ToString("N");
 
-        var login = await client.PostAsJsonAsync("login", new { email, password });
-        Assert.Equal(HttpStatusCode.Conflict, login.StatusCode);
-        var problem = await login.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal("urn:uvoluntapp:password-setup-required", problem.GetProperty("type").GetString());
+        await AssertProblemAsync(await client.PostAsJsonAsync("login", new { email, password }), HttpStatusCode.Unauthorized);
         var code = fixture.Mail.Code(email);
 
         var wrong = code == "000000" ? "111111" : "000000";
@@ -277,7 +274,7 @@ public sealed class AuthFlowTests(AuthFixture fixture) : IClassFixture<AuthFixtu
         using var client = fixture.Client();
         var email = await GoogleOnlyUserAsync(AccountStatus.PENDING_APPROVAL);
         var password = Guid.NewGuid().ToString("N");
-        await AssertProblemAsync(await client.PostAsJsonAsync("login", new { email, password }), HttpStatusCode.Conflict);
+        await AssertProblemAsync(await client.PostAsJsonAsync("login", new { email, password }), HttpStatusCode.Unauthorized);
 
         var set = await client.PostAsJsonAsync("set-password", new { email, code = fixture.Mail.Code(email), password });
         set.EnsureSuccessStatusCode();
@@ -485,7 +482,8 @@ public sealed class AuthFlowTests(AuthFixture fixture) : IClassFixture<AuthFixtu
         Email = $"{Guid.NewGuid():N}@{domain}",
         Password = Guid.NewGuid().ToString("N"),
         FirstName = "Ana",
-        LastName = "Paz"
+        LastName = "Paz",
+        Phone = "70000000"
     };
 
     private static async Task<RegisterResponse> RegisterAsync(HttpClient client, RegisterRequest request)

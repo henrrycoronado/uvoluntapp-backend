@@ -18,7 +18,7 @@ public sealed record ActivityResponse(
     int? Capacity,
     decimal? ExpectedHours,
     string? ParticipationConditions,
-    string? PeriodicityNote,
+    ParticipationResponse Participation,
     string? GroupLabel,
     string Status,
     string? CancellationReason,
@@ -27,9 +27,11 @@ public sealed record ActivityResponse(
     DateTime CreatedAt,
     DateTime? UpdatedAt,
     bool CanManage = false,
-    bool CanMove = false)
+    bool ImagePresent = false)
 {
-    public static ActivityResponse From(Activity activity, string? programName, bool canManage, bool canMove) => new(
+    public string? ImageUrl => ImagePresent ? $"/api/v1/activities/{Id}/image" : null;
+
+    public static ActivityResponse From(Activity activity, string? programName, bool canManage) => new(
         activity.Id,
         activity.ProgramId,
         programName,
@@ -44,8 +46,8 @@ public sealed record ActivityResponse(
         activity.RequiresRegistration,
         activity.Capacity,
         activity.ExpectedHours,
-        activity.ParticipationConditions,
-        activity.PeriodicityNote,
+        activity.ParticipationConditions ?? "Ninguna",
+        ParticipationResponse.From(activity),
         activity.GroupLabel,
         activity.Status.ToString(),
         activity.CancellationReason,
@@ -54,5 +56,5 @@ public sealed record ActivityResponse(
         activity.CreatedAt,
         activity.UpdatedAt,
         canManage,
-        canMove);
+        activity.Images.Count > 0);
 }

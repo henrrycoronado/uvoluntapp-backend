@@ -307,12 +307,17 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("expires_at");
 
+                    b.Property<string>("NormalizedEmail")
+                        .HasColumnType("text")
+                        .HasColumnName("normalized_email");
+
                     b.Property<string>("TokenHash")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("token_hash");
 
                     b.Property<DateTime?>("UsedAt")
+                        .IsConcurrencyToken()
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("used_at");
 
@@ -481,6 +486,14 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("period_id");
 
+                    b.Property<bool>("AllowMultipleGroups")
+                        .HasColumnType("boolean")
+                        .HasColumnName("allow_multiple_groups");
+
+                    b.Property<bool>("AllowSelfCheckin")
+                        .HasColumnType("boolean")
+                        .HasColumnName("allow_self_checkin");
+
                     b.Property<string>("CancellationReason")
                         .HasColumnType("text")
                         .HasColumnName("cancellation_reason");
@@ -488,6 +501,10 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                     b.Property<int?>("Capacity")
                         .HasColumnType("integer")
                         .HasColumnName("capacity");
+
+                    b.Property<int>("CheckinToleranceMin")
+                        .HasColumnType("integer")
+                        .HasColumnName("checkin_tolerance_min");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -515,15 +532,27 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("finished_at");
 
+                    b.Property<int?>("GeofenceRadiusM")
+                        .HasColumnType("integer")
+                        .HasColumnName("geofence_radius_m");
+
                     b.Property<string>("GroupLabel")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("group_label");
 
+                    b.Property<decimal?>("Latitude")
+                        .HasColumnType("numeric")
+                        .HasColumnName("latitude");
+
                     b.Property<string>("Location")
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)")
                         .HasColumnName("location");
+
+                    b.Property<decimal?>("Longitude")
+                        .HasColumnType("numeric")
+                        .HasColumnName("longitude");
 
                     b.Property<string>("MeetingUrl")
                         .HasMaxLength(500)
@@ -539,11 +568,6 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)")
                         .HasColumnName("participation_conditions");
-
-                    b.Property<string>("PeriodicityNote")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("periodicity_note");
 
                     b.Property<Guid?>("ProgramId")
                         .HasColumnType("uuid")
@@ -586,13 +610,13 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("AcademicPeriodId");
 
-                    b.HasIndex("ProgramId", "AcademicPeriodId");
+                    b.HasIndex("ProgramId");
 
                     b.HasIndex("Status", "StartsAt");
 
                     b.ToTable("activities", null, t =>
                         {
-                            t.HasCheckConstraint("ck_activities_capacity", "capacity > 0");
+                            t.HasCheckConstraint("ck_activities_capacity", "capacity >= 0");
 
                             t.HasCheckConstraint("ck_activities_capacity_requires_registration", "capacity IS NULL OR requires_registration");
 
@@ -603,6 +627,56 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("ck_activities_schedule", "ends_at > starts_at");
 
                             t.HasCheckConstraint("ck_activities_status", "status IN ('DRAFT', 'PUBLISHED', 'IN_PROGRESS', 'FINISHED', 'CANCELLED')");
+                        });
+                });
+
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Activities.ActivityGroup", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ActivityId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("activity_id");
+
+                    b.Property<int?>("Capacity")
+                        .HasColumnType("integer")
+                        .HasColumnName("capacity");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTime>("EndsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ends_at");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTime>("StartsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("starts_at");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("activity_groups", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_activity_group_schedule", "ends_at > starts_at AND (capacity IS NULL OR capacity >= 0)");
                         });
                 });
 
@@ -670,6 +744,60 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Activities.Enrollment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ActivityId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("activity_id");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cancelled_at");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<Guid?>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("ActivityId", "GroupId");
+
+                    b.HasIndex("ActivityId", "UserId")
+                        .IsUnique()
+                        .HasFilter("cancelled_at IS NULL AND group_id IS NULL");
+
+                    b.HasIndex("GroupId", "UserId")
+                        .IsUnique()
+                        .HasFilter("cancelled_at IS NULL AND group_id IS NOT NULL");
+
+                    b.ToTable("enrollments", (string)null);
+                });
+
             modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Audit.AuditEvent", b =>
                 {
                     b.Property<Guid>("Id")
@@ -721,6 +849,64 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                     b.ToTable("audit_events", (string)null);
                 });
 
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Common.MediaAsset", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("ActivityId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("activity_id");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("content_hash");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<Guid?>("ProgramId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("program_id");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActivityId")
+                        .IsUnique()
+                        .HasFilter("deleted_at IS NULL AND activity_id IS NOT NULL");
+
+                    b.HasIndex("ProgramId")
+                        .IsUnique()
+                        .HasFilter("deleted_at IS NULL AND program_id IS NOT NULL");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasFilter("deleted_at IS NULL AND user_id IS NOT NULL");
+
+                    b.ToTable("media_assets", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_media_owner", "num_nonnulls(user_id,program_id,activity_id) = 1");
+                        });
+                });
+
             modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Programs.AcademicPeriod", b =>
                 {
                     b.Property<Guid>("Id")
@@ -736,15 +922,23 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("deleted_at");
 
-                    b.Property<DateTime>("EndsAt")
+                    b.Property<DateTime?>("EndsAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("end_date");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
 
                     b.Property<string>("Label")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("label");
+
+                    b.Property<Guid?>("PreviousPeriodId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("previous_period_id");
 
                     b.Property<DateTime>("StartsAt")
                         .HasColumnType("timestamp with time zone")
@@ -758,46 +952,17 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("IsActive")
+                        .IsUnique()
+                        .HasFilter("is_active");
+
                     b.HasIndex("Label")
                         .IsUnique();
 
+                    b.HasIndex("PreviousPeriodId")
+                        .IsUnique();
+
                     b.ToTable("academic_periods", (string)null);
-                });
-
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Programs.ProgramPeriod", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid>("AcademicPeriodId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("academic_period_id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("deleted_at");
-
-                    b.Property<Guid>("ProgramId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("program_id");
-
-                    b.Property<uint>("xmin")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("xid")
-                        .HasColumnName("xmin");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AcademicPeriodId");
-
-                    b.ToTable("program_periods", (string)null);
                 });
 
             modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Programs.VolunteerProgram", b =>
@@ -1151,12 +1316,15 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("ProgramId")
                         .OnDelete(DeleteBehavior.Restrict);
+                });
 
-                    b.HasOne("Uvoluntapp.Backend.Domain.Entities.Programs.ProgramPeriod", null)
-                        .WithMany()
-                        .HasForeignKey("ProgramId", "AcademicPeriodId")
-                        .HasPrincipalKey("ProgramId", "AcademicPeriodId")
-                        .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Activities.ActivityGroup", b =>
+                {
+                    b.HasOne("Uvoluntapp.Backend.Domain.Entities.Activities.Activity", null)
+                        .WithMany("Groups")
+                        .HasForeignKey("ActivityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Activities.ActivityReschedule", b =>
@@ -1174,6 +1342,27 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Activities.Enrollment", b =>
+                {
+                    b.HasOne("Uvoluntapp.Backend.Domain.Entities.Activities.Activity", null)
+                        .WithMany()
+                        .HasForeignKey("ActivityId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Uvoluntapp.Backend.Infrastructure.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Uvoluntapp.Backend.Domain.Entities.Activities.ActivityGroup", null)
+                        .WithMany()
+                        .HasForeignKey("ActivityId", "GroupId")
+                        .HasPrincipalKey("ActivityId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
             modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Audit.AuditEvent", b =>
                 {
                     b.HasOne("Uvoluntapp.Backend.Infrastructure.Identity.AppUser", null)
@@ -1182,19 +1371,30 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
-            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Programs.ProgramPeriod", b =>
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Common.MediaAsset", b =>
+                {
+                    b.HasOne("Uvoluntapp.Backend.Domain.Entities.Activities.Activity", null)
+                        .WithMany("Images")
+                        .HasForeignKey("ActivityId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Uvoluntapp.Backend.Domain.Entities.Programs.VolunteerProgram", null)
+                        .WithMany("Images")
+                        .HasForeignKey("ProgramId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Uvoluntapp.Backend.Infrastructure.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Programs.AcademicPeriod", b =>
                 {
                     b.HasOne("Uvoluntapp.Backend.Domain.Entities.Programs.AcademicPeriod", null)
                         .WithMany()
-                        .HasForeignKey("AcademicPeriodId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Uvoluntapp.Backend.Domain.Entities.Programs.VolunteerProgram", null)
-                        .WithMany()
-                        .HasForeignKey("ProgramId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .HasForeignKey("PreviousPeriodId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("Uvoluntapp.Backend.Infrastructure.Persistence.Records.PendingEmailVerificationRecord", b =>
@@ -1204,6 +1404,18 @@ namespace Uvoluntapp.Backend.Infrastructure.Persistence.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Activities.Activity", b =>
+                {
+                    b.Navigation("Groups");
+
+                    b.Navigation("Images");
+                });
+
+            modelBuilder.Entity("Uvoluntapp.Backend.Domain.Entities.Programs.VolunteerProgram", b =>
+                {
+                    b.Navigation("Images");
                 });
 #pragma warning restore 612, 618
         }

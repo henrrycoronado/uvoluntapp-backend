@@ -38,6 +38,7 @@ public sealed class GoogleAccountStore(AppDbContext db) : IGoogleAccountStore
         GoogleIdentity identity,
         AccountStatus status,
         bool institutionalEmailVerified,
+        string? phone,
         CancellationToken cancellationToken)
     {
         var now = DateTime.UtcNow;
@@ -58,7 +59,7 @@ public sealed class GoogleAccountStore(AppDbContext db) : IGoogleAccountStore
         };
         await db.Users.AddAsync(user, cancellationToken);
         await db.Profiles.AddAsync(
-            new Profile { UserId = user.Id, FirstName = identity.GivenName ?? string.Empty, LastName = identity.FamilyName ?? string.Empty },
+            new Profile { UserId = user.Id, FirstName = identity.GivenName ?? string.Empty, LastName = identity.FamilyName ?? string.Empty, Phone = phone },
             cancellationToken);
         var login = new IdentityUserLogin<Guid>
         {

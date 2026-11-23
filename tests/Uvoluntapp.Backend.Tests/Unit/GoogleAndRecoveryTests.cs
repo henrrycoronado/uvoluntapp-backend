@@ -111,11 +111,22 @@ public sealed class GoogleAndRecoveryTests
                 new FakeGoogleValidator(new GoogleTokenClaims("sub-1", "ana@ucb.edu.bo", true, "expected", "ucb.edu.bo")),
                 new FakeGoogleAccounts(),
                 issuer)
-            .AuthenticateAsync(new GoogleAuthRequest("token"), new[] { "expected" });
+            .AuthenticateAsync(new GoogleAuthRequest("token") { Phone = "70000000", FirstName = "Ana", LastName = "Paz" }, new[] { "expected" });
 
         Assert.Equal("ACTIVE", response.AccountStatus);
         Assert.NotNull(response.Tokens);
         Assert.Equal(1, issuer.Issued);
+    }
+
+    [Fact]
+    public async Task InstitutionalGoogleSignupRequiresContactDataBeforeIssuingSession()
+    {
+        var issuer = new FakeSessionIssuer();
+        var service = new GoogleAuthService(new FakeGoogleValidator(new("sub", "ana@ucb.edu.bo", true, "aud", "ucb.edu.bo")), new FakeGoogleAccounts(), issuer);
+        var result = await service.AuthenticateAsync(new GoogleAuthRequest("token"), new[] { "aud" });
+        Assert.True(result.RequiresProfileData);
+        Assert.Null(result.Tokens);
+        Assert.Equal(0, issuer.Issued);
     }
 
     [Fact]
@@ -126,7 +137,7 @@ public sealed class GoogleAndRecoveryTests
                 new FakeGoogleValidator(new GoogleTokenClaims("sub-2", "ana@gmail.com", true, "expected", null)),
                 new FakeGoogleAccounts(),
                 issuer)
-            .AuthenticateAsync(new GoogleAuthRequest("token"), new[] { "expected" });
+            .AuthenticateAsync(new GoogleAuthRequest("token") { Phone = "70000000", FirstName = "Ana", LastName = "Paz" }, new[] { "expected" });
 
         Assert.Equal("PENDING_APPROVAL", response.AccountStatus);
         Assert.Null(response.Tokens);
@@ -160,7 +171,7 @@ public sealed class GoogleAndRecoveryTests
         FakeGoogleAccounts accounts,
         GoogleTokenClaims claims) =>
         new GoogleAuthService(new FakeGoogleValidator(claims), accounts)
-            .AuthenticateAsync(new GoogleAuthRequest("token"), new[] { "expected" });
+            .AuthenticateAsync(new GoogleAuthRequest("token") { Phone = "70000000", FirstName = "Ana", LastName = "Paz" }, new[] { "expected" });
 
     private static Task<MessageResponse> RequestRecoveryAsync(FakeRecoveryAccounts accounts) =>
         new RecoveryService(
@@ -205,6 +216,7 @@ public sealed class GoogleAndRecoveryTests
             GoogleIdentity identity,
             AccountStatus status,
             bool institutionalEmailVerified,
+            string? phone,
             CancellationToken cancellationToken)
         {
             CreatedInstitutionalEmailVerified = institutionalEmailVerified;
@@ -234,7 +246,7 @@ public sealed class GoogleAndRecoveryTests
         public Task<PasswordRecoveryToken?> FindTokenAsync(string tokenHash, CancellationToken cancellationToken) =>
             Task.FromResult<PasswordRecoveryToken?>(null);
 
-        public Task SetPasswordAsync(Guid userId, string newPassword, DateTime utcNow, CancellationToken cancellationToken) =>
+        public Task SetPasswordAsync(PasswordRecoveryToken claimed, string newPassword, DateTime utcNow, CancellationToken cancellationToken) =>
             Task.CompletedTask;
     }
 

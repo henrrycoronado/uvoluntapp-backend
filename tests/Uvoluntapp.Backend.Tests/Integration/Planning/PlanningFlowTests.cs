@@ -81,6 +81,8 @@ public sealed class PlanningFlowTests(AuthFixture fixture) : IClassFixture<AuthF
         var freeId = await CreateActivityAsync(admin, null, period, HttpStatusCode.Created, groupLabel: "Campaña de Navidad");
 
         // El operativo ve el borrador de su programa pero no lo gestiona.
+        Assert.Equal(HttpStatusCode.NotFound, (await operative.Http.GetAsync($"/api/v1/activities/{activityId}")).StatusCode);
+        await leader.Http.PostAsJsonAsync("/api/v1/role-assignments", new { userId = operative.UserId, role = "OPERATIONAL_LEADER", scope = "ACTIVITY", scopeId = activityId });
         var draft = await Json(await operative.Http.GetAsync($"/api/v1/activities/{activityId}"), HttpStatusCode.OK);
         Assert.False(draft.GetProperty("canManage").GetBoolean());
         Assert.Equal(HttpStatusCode.Forbidden, (await operative.Http.PostAsync($"/api/v1/activities/{activityId}/publish", null)).StatusCode);
@@ -106,7 +108,7 @@ public sealed class PlanningFlowTests(AuthFixture fixture) : IClassFixture<AuthF
     }
 
     [Fact]
-    public async Task OperativesAreDelegatedOnlyWithinTheirProgramAndMovingAnActivityRevokesDelegations()
+    public async Task OperativesAreDelegatedOnlyWithinTheirLeadersProgram()
     {
         var admin = await ClientAsync(AssignedRole.ADMIN, RoleScope.GLOBAL, null);
         var programId = await CreateProgramAsync(admin, activate: true);
@@ -117,12 +119,7 @@ public sealed class PlanningFlowTests(AuthFixture fixture) : IClassFixture<AuthF
         var activityId = await CreateActivityAsync(leader, programId, period, HttpStatusCode.Created);
         var foreignActivityId = await CreateActivityAsync(admin, otherProgramId, period, HttpStatusCode.Created);
 
-        // Sin pertenecer al programa no se delega a sus actividades.
         var delegation = new { userId = operative.UserId, role = "OPERATIONAL_LEADER", scope = "ACTIVITY", scopeId = activityId };
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await leader.Http.PostAsJsonAsync("/api/v1/role-assignments", delegation)).StatusCode);
-
-        var membership = new { userId = operative.UserId, role = "OPERATIONAL_LEADER", scope = "PROGRAM", scopeId = programId };
-        Assert.True((await leader.Http.PostAsJsonAsync("/api/v1/role-assignments", membership)).IsSuccessStatusCode);
         Assert.True((await leader.Http.PostAsJsonAsync("/api/v1/role-assignments", delegation)).IsSuccessStatusCode);
 
         // El líder no delega en actividades de otro programa.
@@ -132,17 +129,6 @@ public sealed class PlanningFlowTests(AuthFixture fixture) : IClassFixture<AuthF
         var team = await Json(await leader.Http.GetAsync($"/api/v1/programs/{programId}/team"), HttpStatusCode.OK);
         Assert.Contains(team.EnumerateArray(), m => m.GetProperty("scope").GetString() == "ACTIVITY" && m.GetProperty("userId").GetGuid() == operative.UserId);
 
-        // Solo ADMIN cambia el programa; al moverla, las delegaciones dejan de cubrirla.
-        var move = new { programId = otherProgramId, reason = "Corresponde a otro programa" };
-        Assert.Equal(HttpStatusCode.Forbidden, (await leader.Http.PostAsJsonAsync($"/api/v1/activities/{activityId}/move", move)).StatusCode);
-        var moved = await Json(await admin.Http.PostAsJsonAsync($"/api/v1/activities/{activityId}/move", move), HttpStatusCode.OK);
-        Assert.Equal(otherProgramId, moved.GetProperty("programId").GetGuid());
-        // Ahora es un borrador de otro programa: para el líder ya no existe (no se revela).
-        Assert.Equal(HttpStatusCode.NotFound, (await leader.Http.PatchAsJsonAsync($"/api/v1/activities/{activityId}", ActivityBody(otherProgramId, period))).StatusCode);
-
-        await using var db = fixture.Context();
-        Assert.False(await db.RoleAssignments.AnyAsync(r => r.ScopeId == activityId && r.RevokedAt == null));
-        Assert.True(await db.AuditEvents.AnyAsync(e => e.Action == "ACTIVITY_MOVED" && e.ResourceId == activityId));
     }
 
     [Fact]
@@ -206,6 +192,115 @@ public sealed class PlanningFlowTests(AuthFixture fixture) : IClassFixture<AuthF
         await using var db = fixture.Context();
         Assert.Equal(1, await db.AuditEvents.CountAsync(e => e.Action == "ACTIVITY_STARTED" && e.ResourceId == running && e.ActorId == null));
         Assert.Equal(HttpStatusCode.OK, (await leader.Http.PostAsync($"/api/v1/activities/{running}/finish", null)).StatusCode);
+    }
+
+    [Fact]
+    public async Task LastSeatIsAtomicAndCancellationReleasesOnlyItsOwnSeat()
+    {
+        var admin = await ClientAsync(AssignedRole.ADMIN, RoleScope.GLOBAL, null);
+        var one = await ClientAsync(null, RoleScope.GLOBAL, null);
+        var two = await ClientAsync(null, RoleScope.GLOBAL, null);
+        var activity = await Json(await admin.Http.PostAsJsonAsync("/api/v1/activities", ActivityBody(null, await PeriodAsync(), capacity: 1, requiresRegistration: true)), HttpStatusCode.Created);
+        var path = $"/api/v1/activities/{activity.GetProperty("id").GetGuid()}";
+        (await admin.Http.PostAsync(path + "/publish", null)).EnsureSuccessStatusCode();
+        var signup = path + "/enrollments";
+        var results = await Task.WhenAll(one.Http.PostAsJsonAsync(signup, new { }), two.Http.PostAsJsonAsync(signup, new { }));
+        var success = await Json(Assert.Single(results, r => r.IsSuccessStatusCode), HttpStatusCode.OK);
+        var rejection = await Json(Assert.Single(results, r => !r.IsSuccessStatusCode), HttpStatusCode.Conflict);
+        Assert.Equal("CAPACITY_FULL", rejection.GetProperty("code").GetString());
+        var winner = success.GetProperty("userId").GetGuid() == one.UserId ? one : two;
+        var other = winner == one ? two : one;
+        var cancel = signup + "/" + success.GetProperty("id").GetGuid();
+        Assert.Equal(HttpStatusCode.NotFound, (await other.Http.DeleteAsync(cancel)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await other.Http.GetAsync(signup)).StatusCode);
+        (await winner.Http.DeleteAsync(cancel)).EnsureSuccessStatusCode();
+        (await other.Http.PostAsJsonAsync(signup, new { })).EnsureSuccessStatusCode();
+        (await winner.Http.DeleteAsync(cancel)).EnsureSuccessStatusCode();
+        var mine = await Json(await winner.Http.GetAsync("/api/v1/me/enrollments"), HttpStatusCode.OK);
+        Assert.Equal("CANCELLED", Assert.Single(mine.EnumerateArray()).GetProperty("status").GetString());
+    }
+
+    [Fact]
+    public async Task GroupEnrollmentChecksEveryActiveIntervalAndAllowsAdjacentSlots()
+    {
+        var admin = await ClientAsync(AssignedRole.ADMIN, RoleScope.GLOBAL, null);
+        var person = await ClientAsync(null, RoleScope.GLOBAL, null);
+        var period = await PeriodAsync();
+        var draft = await Json(await admin.Http.PostAsJsonAsync("/api/v1/activities", ActivityBody(null, period, requiresRegistration: true)), HttpStatusCode.Created);
+        var start = draft.GetProperty("startsAt").GetDateTime().AddMinutes(2);
+        var path = $"/api/v1/activities/{draft.GetProperty("id").GetGuid()}";
+        var groups = new[] {
+            new { name = "A", startsAt = start, endsAt = start.AddMinutes(30), capacity = 1 },
+            new { name = "B", startsAt = start.AddMinutes(30), endsAt = start.AddHours(1), capacity = 1 },
+            new { name = "C", startsAt = start.AddMinutes(15), endsAt = start.AddMinutes(45), capacity = 2 }
+        };
+        var setup = await Json(await admin.Http.PutAsJsonAsync(path + "/participation", new { allowMultipleGroups = true, groups }), HttpStatusCode.OK);
+        var ids = setup.GetProperty("participation").GetProperty("groups").EnumerateArray().ToDictionary(g => g.GetProperty("name").GetString()!, g => g.GetProperty("id").GetGuid());
+        (await admin.Http.PostAsync(path + "/publish", null)).EnsureSuccessStatusCode();
+        var signup = path + "/enrollments";
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await person.Http.PostAsJsonAsync(signup, new { })).StatusCode);
+        (await person.Http.PostAsJsonAsync(signup, new { groupId = ids["A"] })).EnsureSuccessStatusCode();
+        var duplicate = await Json(await person.Http.PostAsJsonAsync(signup, new { groupId = ids["A"] }), HttpStatusCode.Conflict);
+        Assert.Equal("ALREADY_ENROLLED", duplicate.GetProperty("code").GetString());
+        var collision = await Json(await person.Http.PostAsJsonAsync(signup, new { groupId = ids["C"] }), HttpStatusCode.Conflict);
+        Assert.Equal("TIME_OVERLAP", collision.GetProperty("code").GetString());
+        (await person.Http.PostAsJsonAsync(signup, new { groupId = ids["B"] })).EnsureSuccessStatusCode();
+        var second = await Json(await admin.Http.PostAsJsonAsync("/api/v1/activities", ActivityBody(null, period, requiresRegistration: true)), HttpStatusCode.Created);
+        var otherPath = $"/api/v1/activities/{second.GetProperty("id").GetGuid()}";
+        (await admin.Http.PostAsync(otherPath + "/publish", null)).EnsureSuccessStatusCode();
+        var cross = await Json(await person.Http.PostAsJsonAsync(otherPath + "/enrollments", new { }), HttpStatusCode.Conflict);
+        Assert.Equal("TIME_OVERLAP", cross.GetProperty("code").GetString());
+    }
+
+    [Fact]
+    public async Task CoverUsesPrivateStorageAndChecksResourceAccess()
+    {
+        var admin = await ClientAsync(AssignedRole.ADMIN, RoleScope.GLOBAL, null);
+        var person = await ClientAsync(null, RoleScope.GLOBAL, null);
+        var id = await CreateProgramAsync(admin);
+        var cover = $"/api/v1/programs/{id}/cover";
+        using var png = new SkiaSharp.SKBitmap(20, 10);
+        using var encoded = png.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100);
+        using var upload = new MultipartFormDataContent();
+        var content = new ByteArrayContent(encoded.ToArray());
+        content.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+        upload.Add(content, "file", "cover.png");
+        Assert.Equal(HttpStatusCode.Forbidden, (await person.Http.PutAsync(cover, upload)).StatusCode);
+        (await admin.Http.PutAsync(cover, upload)).EnsureSuccessStatusCode();
+        (await admin.Http.PutAsync(cover, upload)).EnsureSuccessStatusCode();
+        using var anonymous = fixture.Client();
+        Assert.Equal(HttpStatusCode.NotFound, (await anonymous.GetAsync(cover)).StatusCode);
+        (await admin.Http.PostAsync($"/api/v1/programs/{id}/activate", null)).EnsureSuccessStatusCode();
+        var catalog = await Json(await anonymous.GetAsync("/api/v1/catalog/programs?pageSize=100"), HttpStatusCode.OK);
+        Assert.Contains(catalog.GetProperty("items").EnumerateArray(), p => p.GetProperty("id").GetGuid() == id && p.GetProperty("imagePresent").GetBoolean());
+        (await admin.Http.DeleteAsync(cover)).EnsureSuccessStatusCode();
+        Assert.Equal(HttpStatusCode.NotFound, (await anonymous.GetAsync(cover)).StatusCode);
+    }
+
+    [Fact]
+    public async Task OpenDraftBlocksManualPeriodClosure()
+    {
+        var admin = await ClientAsync(AssignedRole.ADMIN, RoleScope.GLOBAL, null);
+        var period = await PeriodAsync();
+        await CreateActivityAsync(admin, null, period, HttpStatusCode.Created);
+        var response = await admin.Http.PostAsJsonAsync($"/api/v1/academic-periods/{period}/close", new { successorLabel = "Siguiente" });
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        await using var db = fixture.Context();
+        Assert.Equal(period, (await db.AcademicPeriods.SingleAsync(p => p.IsActive)).Id);
+    }
+
+    [Fact]
+    public async Task ZeroCapacityRejectsWithoutRecordingAnEnrollment()
+    {
+        var admin = await ClientAsync(AssignedRole.ADMIN, RoleScope.GLOBAL, null);
+        var person = await ClientAsync(null, RoleScope.GLOBAL, null);
+        var created = await Json(await admin.Http.PostAsJsonAsync("/api/v1/activities", ActivityBody(null, await PeriodAsync(), capacity: 0, requiresRegistration: true)), HttpStatusCode.Created);
+        var path = $"/api/v1/activities/{created.GetProperty("id").GetGuid()}";
+        (await admin.Http.PostAsync(path + "/publish", null)).EnsureSuccessStatusCode();
+        var error = await Json(await person.Http.PostAsJsonAsync(path + "/enrollments", new { }), HttpStatusCode.Conflict);
+        Assert.Equal("CAPACITY_FULL", error.GetProperty("code").GetString());
+        var mine = await Json(await person.Http.GetAsync("/api/v1/me/enrollments"), HttpStatusCode.OK);
+        Assert.Empty(mine.EnumerateArray());
     }
 
     private static object ActivityBody(
@@ -275,15 +370,7 @@ public sealed class PlanningFlowTests(AuthFixture fixture) : IClassFixture<AuthF
     private async Task<Guid> PeriodAsync()
     {
         await using var db = fixture.Context();
-        var period = new AcademicPeriod
-        {
-            Label = Guid.NewGuid().ToString("N")[..12],
-            StartsAt = DateTime.UtcNow.AddDays(-30),
-            EndsAt = DateTime.UtcNow.AddDays(300),
-        };
-        db.AcademicPeriods.Add(period);
-        await db.SaveChangesAsync();
-        return period.Id;
+        return (await db.AcademicPeriods.SingleAsync(p => p.IsActive)).Id;
     }
 
     private async Task<Actor> ClientAsync(AssignedRole? role, RoleScope scope, Guid? scopeId)

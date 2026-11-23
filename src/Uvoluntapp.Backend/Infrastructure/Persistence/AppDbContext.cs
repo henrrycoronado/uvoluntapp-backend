@@ -34,7 +34,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<VolunteerProgram> Programs => Set<VolunteerProgram>();
 
-    public DbSet<ProgramPeriod> ProgramPeriods => Set<ProgramPeriod>();
+    public DbSet<Enrollment> Enrollments => Set<Enrollment>();
 
     public DbSet<Activity> Activities => Set<Activity>();
 
@@ -85,6 +85,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         {
             token.ToTable("password_recovery_tokens");
             token.HasKey(t => t.Id);
+            token.Property(t => t.UsedAt).IsConcurrencyToken();
             token.HasIndex(t => t.TokenHash).IsUnique();
             token.HasOne<AppUser>().WithMany().HasForeignKey(t => t.UserId);
         });
@@ -138,6 +139,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             period.Property(p => p.StartsAt).HasColumnName("start_date");
             period.Property(p => p.EndsAt).HasColumnName("end_date");
             period.Property(p => p.Label).HasMaxLength(20);
+            period.HasIndex(p => p.IsActive).IsUnique().HasFilter("is_active");
+            period.HasOne<AcademicPeriod>().WithMany().HasForeignKey(p => p.PreviousPeriodId);
+            period.HasIndex(p => p.PreviousPeriodId).IsUnique();
             period.HasIndex(p => p.Label).IsUnique();
         });
         model.Entity<VolunteerProgram>(program =>
@@ -148,18 +152,12 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             program.Property(p => p.Contact).HasMaxLength(VolunteerProgram.ContactMaxLength);
             program.Property(p => p.ReferenceSchedule).HasMaxLength(VolunteerProgram.ReferenceScheduleMaxLength);
         });
-        model.Entity<ProgramPeriod>(link =>
-        {
-            link.ToTable("program_periods");
-            link.HasOne<VolunteerProgram>().WithMany().HasForeignKey(p => p.ProgramId);
-            link.HasOne<AcademicPeriod>().WithMany().HasForeignKey(p => p.AcademicPeriodId);
-        });
         model.Entity<Activity>(activity =>
         {
             activity.ToTable("activities", t =>
             {
                 t.HasCheckConstraint("ck_activities_schedule", "ends_at > starts_at");
-                t.HasCheckConstraint("ck_activities_capacity", "capacity > 0");
+                t.HasCheckConstraint("ck_activities_capacity", "capacity >= 0");
 
                 // El cupo solo existe si la actividad requiere registro previo (SCRUM-49).
                 t.HasCheckConstraint("ck_activities_capacity_requires_registration", "capacity IS NULL OR requires_registration");
@@ -170,16 +168,43 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             activity.Property(a => a.Location).HasMaxLength(Activity.LocationMaxLength);
             activity.Property(a => a.MeetingUrl).HasMaxLength(Activity.UrlMaxLength);
             activity.Property(a => a.ParticipationConditions).HasMaxLength(Activity.TextMaxLength);
-            activity.Property(a => a.PeriodicityNote).HasMaxLength(Activity.NoteMaxLength);
+            activity.HasMany(a => a.Groups).WithOne().HasForeignKey(g => g.ActivityId).OnDelete(DeleteBehavior.Cascade);
+            activity.Navigation(a => a.Groups).AutoInclude();
             activity.Property(a => a.GroupLabel).HasMaxLength(Activity.GroupLabelMaxLength);
             activity.Property(a => a.ExpectedHours).HasPrecision(6, 1);
             activity.HasIndex(a => new { a.Status, a.StartsAt });
             activity.Property(a => a.AcademicPeriodId).HasColumnName("period_id");
             activity.HasOne<AcademicPeriod>().WithMany().HasForeignKey(a => a.AcademicPeriodId);
             activity.HasOne<VolunteerProgram>().WithMany().HasForeignKey(a => a.ProgramId);
-            activity.HasOne<ProgramPeriod>().WithMany()
-                .HasForeignKey(a => new { a.ProgramId, a.AcademicPeriodId })
-                .HasPrincipalKey(p => new { p.ProgramId, p.AcademicPeriodId });
+        });
+        model.Entity<MediaAsset>(media =>
+        {
+            media.ToTable("media_assets", t => t.HasCheckConstraint("ck_media_owner", "num_nonnulls(user_id,program_id,activity_id) = 1"));
+            media.HasQueryFilter(m => m.DeletedAt == null);
+            media.HasOne<AppUser>().WithMany().HasForeignKey(m => m.UserId);
+            media.HasOne<Activity>().WithMany(a => a.Images).HasForeignKey(m => m.ActivityId);
+            media.HasOne<VolunteerProgram>().WithMany(p => p.Images).HasForeignKey(m => m.ProgramId);
+            media.HasIndex(m => m.UserId).IsUnique().HasFilter("deleted_at IS NULL AND user_id IS NOT NULL");
+            media.HasIndex(m => m.ProgramId).IsUnique().HasFilter("deleted_at IS NULL AND program_id IS NOT NULL");
+            media.HasIndex(m => m.ActivityId).IsUnique().HasFilter("deleted_at IS NULL AND activity_id IS NOT NULL");
+        });
+        model.Entity<Activity>().Navigation(a => a.Images).AutoInclude();
+        model.Entity<VolunteerProgram>().Navigation(p => p.Images).AutoInclude();
+        model.Entity<Enrollment>(enrollment =>
+        {
+            enrollment.ToTable("enrollments");
+            enrollment.HasOne<AppUser>().WithMany().HasForeignKey(e => e.UserId);
+            enrollment.HasOne<Activity>().WithMany().HasForeignKey(e => e.ActivityId);
+            enrollment.HasOne<ActivityGroup>().WithMany().HasForeignKey(e => new { e.ActivityId, e.GroupId }).HasPrincipalKey(g => new { g.ActivityId, g.Id });
+            enrollment.HasIndex(e => new { e.ActivityId, e.UserId }).IsUnique().HasFilter("cancelled_at IS NULL AND group_id IS NULL");
+            enrollment.HasIndex(e => new { e.GroupId, e.UserId }).IsUnique().HasFilter("cancelled_at IS NULL AND group_id IS NOT NULL");
+        });
+        model.Entity<ActivityGroup>(group =>
+        {
+            group.ToTable("activity_groups", t => t.HasCheckConstraint("ck_activity_group_schedule", "ends_at > starts_at AND (capacity IS NULL OR capacity >= 0)"));
+            group.Property(g => g.Id).ValueGeneratedNever();
+            group.HasAlternateKey(g => new { g.ActivityId, g.Id });
+            group.Property(g => g.Name).HasMaxLength(100);
         });
         model.Entity<ActivityReschedule>(reschedule =>
         {
@@ -216,7 +241,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
             foreach (var foreignKey in type.GetForeignKeys())
             {
-                foreignKey.DeleteBehavior = DeleteBehavior.Restrict;
+                if (foreignKey.DeclaringEntityType.ClrType != typeof(ActivityGroup))
+                {
+                    foreignKey.DeleteBehavior = DeleteBehavior.Restrict;
+                }
             }
 
             foreach (var property in type.GetProperties())

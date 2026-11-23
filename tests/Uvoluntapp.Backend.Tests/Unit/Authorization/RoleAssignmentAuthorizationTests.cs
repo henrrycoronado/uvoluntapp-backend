@@ -59,6 +59,16 @@ public class RoleAssignmentAuthorizationTests
     }
 
     [Fact]
+    public void SecondActiveAssignmentCanAuthorizeADifferentProgram()
+    {
+        var user = Guid.NewGuid();
+        var first = RoleAssignment.Assign(user, AssignedRole.PROGRAM_LEADER, RoleScope.PROGRAM, _programA, user);
+        var second = RoleAssignment.Assign(user, AssignedRole.PROGRAM_LEADER, RoleScope.PROGRAM, _programB, user);
+        var request = new AuthorizationRequest(true, AccountStatus.ACTIVE, [first, second], AssignedRole.PROGRAM_LEADER, RoleScope.PROGRAM, _programB, null, true);
+        Assert.Equal(AuthorizationDecision.ALLOWED, _authorization.Authorize(request));
+    }
+
+    [Fact]
     public void ProgramLeaderCoversActivityBelongingToAssignedProgram()
     {
         var activityId = Guid.NewGuid();

@@ -60,6 +60,9 @@ public class RegisterRequestValidatorTests
     }
 
     [Fact]
+    public void RequiresPhone() => AssertHasError(RegisterRequestValidator.Validate(ValidRequest() with { Phone = null }), nameof(RegisterRequest.Phone));
+
+    [Fact]
     public void RejectsNullRequest()
     {
         Assert.Throws<ArgumentNullException>(() => RegisterRequestValidator.Validate(null!));
@@ -69,6 +72,7 @@ public class RegisterRequestValidatorTests
     {
         Email = "ana.perez@ucb.edu.bo",
         Password = TestCredentials.Valid,
+        Phone = "70000000",
         FirstName = "Ana",
         LastName = "Pérez",
     };

@@ -38,6 +38,10 @@ public sealed class CatalogController(CatalogService catalog) : ControllerBase
             new ActivityQuery(programId, periodId, status, independent, groupLabel, fromDate, toDate, page, pageSize),
             cancellationToken));
 
+    [HttpGet("catalog/activities/{activityId:guid}")]
+    public async Task<ActionResult<CatalogActivitySummary>> Activity(Guid activityId, CancellationToken cancellationToken) =>
+        Ok(await catalog.ActivityAsync(activityId, cancellationToken));
+
     [HttpGet("catalog/periods")]
     public async Task<ActionResult<IReadOnlyList<AcademicPeriodResponse>>> Periods(CancellationToken cancellationToken) =>
         Ok(await catalog.PeriodsAsync(cancellationToken));

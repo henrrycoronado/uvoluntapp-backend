@@ -10,6 +10,7 @@ public partial class Program
         builder.Services.AddAppServices(builder.Configuration);
         var app = builder.Build();
         app.UseExceptionHandler();
+        app.UseStatusCodePages();
         app.UseRouting();
         app.UseCors("web");
         app.UseAuthentication();

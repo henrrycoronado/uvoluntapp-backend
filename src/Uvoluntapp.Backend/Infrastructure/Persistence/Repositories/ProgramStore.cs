@@ -34,7 +34,7 @@ public sealed class ProgramStore(AppDbContext db) : IProgramStore
 
         if (periodId is { } period)
         {
-            query = query.Where(p => db.ProgramPeriods.Any(link => link.ProgramId == p.Id && link.AcademicPeriodId == period && link.DeletedAt == null));
+            query = query.Where(p => db.Activities.Any(link => link.ProgramId == p.Id && link.AcademicPeriodId == period && link.DeletedAt == null));
         }
 
         var total = await query.CountAsync(cancellationToken);

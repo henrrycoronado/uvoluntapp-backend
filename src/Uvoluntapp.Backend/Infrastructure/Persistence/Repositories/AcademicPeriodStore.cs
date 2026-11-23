@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Uvoluntapp.Backend.Application.Exceptions.Common;
 using Uvoluntapp.Backend.Application.Interfaces.Programs;
 using Uvoluntapp.Backend.Domain.Entities.Programs;
+using Uvoluntapp.Backend.Domain.Utils.Enums;
 
 namespace Uvoluntapp.Backend.Infrastructure.Persistence.Repositories;
 
@@ -14,18 +16,43 @@ public sealed class AcademicPeriodStore(AppDbContext db) : IAcademicPeriodStore
 
     public async Task<IReadOnlyList<AcademicPeriod>> ListForProgramAsync(Guid programId, CancellationToken cancellationToken = default) =>
         await db.AcademicPeriods.AsNoTracking()
-            .Where(p => db.ProgramPeriods.Any(link => link.ProgramId == programId && link.AcademicPeriodId == p.Id && link.DeletedAt == null))
+            .Where(p => db.Activities.Any(a => a.ProgramId == programId && a.AcademicPeriodId == p.Id && a.DeletedAt == null))
             .OrderBy(p => p.StartsAt)
             .ToListAsync(cancellationToken);
 
-    public async Task EnsureProgramLinkAsync(Guid programId, Guid periodId, CancellationToken cancellationToken = default)
+    public Task<AcademicPeriod?> ActiveAsync(CancellationToken ct) => db.AcademicPeriods.SingleOrDefaultAsync(p => p.IsActive, ct);
+
+    public async Task<AcademicPeriod> ChangeAsync(Guid periodId, string label, DateTime? end, DateTime today, bool close, Func<AcademicPeriod, Task> record, CancellationToken ct)
     {
-        var tracked = db.ProgramPeriods.Local.Any(link => link.ProgramId == programId && link.AcademicPeriodId == periodId);
-        if (tracked || await db.ProgramPeriods.AnyAsync(link => link.ProgramId == programId && link.AcademicPeriodId == periodId, cancellationToken))
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT id FROM academic_periods WHERE id = {periodId} FOR UPDATE", ct);
+        var period = await db.AcademicPeriods.FindAsync([periodId], ct) ?? throw new NotFoundException("El periodo no existe.");
+        if (close)
         {
-            return;
+            var existing = await db.AcademicPeriods.SingleOrDefaultAsync(p => p.PreviousPeriodId == periodId, ct);
+            if (existing != null)
+            {
+                return existing;
+            }
+
+            if (await db.Activities.AnyAsync(a => a.AcademicPeriodId == periodId && a.DeletedAt == null && a.Status != ActivityStatus.FINISHED && a.Status != ActivityStatus.CANCELLED, ct))
+            {
+                throw new ConflictException("Quedan actividades pendientes en el periodo.");
+            }
+
+            var successor = period.Close(label, today);
+            await db.SaveChangesAsync(ct);
+            db.AcademicPeriods.Add(successor);
+            period = successor;
+        }
+        else
+        {
+            period.Edit(label, end, today);
         }
 
-        await db.ProgramPeriods.AddAsync(new ProgramPeriod { ProgramId = programId, AcademicPeriodId = periodId }, cancellationToken);
+        await record(period);
+        await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+        return period;
     }
 }

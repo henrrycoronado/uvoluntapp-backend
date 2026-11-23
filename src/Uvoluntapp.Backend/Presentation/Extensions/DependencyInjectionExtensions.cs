@@ -13,6 +13,7 @@ using Uvoluntapp.Backend.Application.Services.Activities;
 using Uvoluntapp.Backend.Application.Services.Administration;
 using Uvoluntapp.Backend.Application.Services.Audit;
 using Uvoluntapp.Backend.Application.Services.Authorization;
+using Uvoluntapp.Backend.Application.Services.Common;
 using Uvoluntapp.Backend.Application.Services.Profiles;
 using Uvoluntapp.Backend.Application.Services.Programs;
 using Uvoluntapp.Backend.Infrastructure.Auth;
@@ -22,6 +23,7 @@ using Uvoluntapp.Backend.Infrastructure.Jobs;
 using Uvoluntapp.Backend.Infrastructure.Persistence;
 using Uvoluntapp.Backend.Infrastructure.Persistence.Repositories;
 using Uvoluntapp.Backend.Infrastructure.Persistence.Seeders;
+using Uvoluntapp.Backend.Infrastructure.Storage;
 using Uvoluntapp.Backend.Presentation.Helpers;
 using Uvoluntapp.Backend.Presentation.Middleware;
 
@@ -103,7 +105,15 @@ public static class DependencyInjectionExtensions
         services.AddScoped<ProfileApplicationService>();
         services.AddScoped<PlanningAccess>();
         services.AddScoped<ProgramService>();
+        services.AddScoped<PeriodAdministration>();
+        services.AddScoped<ResourceImageService>();
+        services.AddScoped<IMediaStore, MediaStore>();
+        services.AddSingleton<IImageProcessor, ImageProcessor>();
+        services.AddSingleton<IFileStorage, R2FileStorage>();
+        services.AddScoped<ActivityNotices>();
         services.AddScoped<ActivityService>();
+        services.AddScoped<EnrollmentService>();
+        services.AddScoped<IEnrollmentStore, EnrollmentStore>();
         services.AddScoped<ActivityStarter>();
         services.AddScoped<CatalogService>();
 
@@ -116,7 +126,8 @@ public static class DependencyInjectionExtensions
             .AllowCredentials()));
 
         services.AddDataProtection();
-        services.AddProblemDetails();
+        services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
+            context.ProblemDetails.Extensions.TryAdd("code", $"HTTP_{context.ProblemDetails.Status}"));
         services.AddSingleton<PlanningRejectionAudit>();
         services.AddExceptionHandler<GlobalExceptionHandler>();
         services.AddControllers();

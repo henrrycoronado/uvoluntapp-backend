@@ -91,6 +91,7 @@ public sealed class AuthFixture : IAsyncLifetime
             builder.ConfigureTestServices(services =>
             {
                 services.AddSingleton<IEmailSender>(Mail);
+                services.AddSingleton<Uvoluntapp.Backend.Application.Interfaces.Common.IFileStorage, TestFileStorage>();
                 services.AddSingleton<IStartupFilter, TestPeerFilter>();
             });
         });

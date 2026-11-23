@@ -15,5 +15,4 @@ public sealed record ActivityPlan(
     int? Capacity,
     decimal? ExpectedHours,
     string? ParticipationConditions,
-    string? PeriodicityNote,
     string? GroupLabel);

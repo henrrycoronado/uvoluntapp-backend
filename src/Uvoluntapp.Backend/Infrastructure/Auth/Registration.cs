@@ -199,7 +199,7 @@ public sealed class Registration(
         {
             throw new AccountException(
                 AccountError.ReapplyTooEarly,
-                new Dictionary<string, object?> { ["reapplyAvailableAt"] = last.ReviewedAt?.AddDays(1) });
+                new Dictionary<string, object?> { ["reapplyAvailableAt"] = last.ReviewedAt?.AddHours(12) });
         }
 
         // La solicitud anterior queda como historial; la nueva lleva los datos actualizados.

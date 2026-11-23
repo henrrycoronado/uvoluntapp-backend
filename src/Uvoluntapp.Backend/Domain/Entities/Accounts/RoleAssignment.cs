@@ -95,7 +95,7 @@ public sealed class RoleAssignment : Entity
             return resourceScope == RoleScope.ACTIVITY && ScopeId == resourceId;
         }
 
-        if (Scope == RoleScope.PROGRAM)
+        if (Scope == RoleScope.PROGRAM && Role == AssignedRole.PROGRAM_LEADER)
         {
             if (resourceScope == RoleScope.PROGRAM)
             {

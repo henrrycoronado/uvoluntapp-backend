@@ -64,7 +64,7 @@ public class CoreEntityTests
     public void ConfigurationNeverContradictsItself()
     {
         Assert.Throws<DomainRuleViolationException>(() => Activity.Create(null, Guid.NewGuid(), Plan() with { Capacity = 20 }, _now));
-        Assert.Throws<DomainRuleViolationException>(() => Activity.Create(null, Guid.NewGuid(), Plan() with { RequiresRegistration = true, Capacity = 0 }, _now));
+        Assert.Throws<DomainRuleViolationException>(() => Activity.Create(null, Guid.NewGuid(), Plan() with { RequiresRegistration = true, Capacity = -1 }, _now));
         Assert.Throws<DomainRuleViolationException>(() => Activity.Create(null, Guid.NewGuid(), Plan() with { MeetingUrl = "no es un enlace" }, _now));
 
         var limited = Activity.Create(null, Guid.NewGuid(), Plan() with { RequiresRegistration = true, Capacity = 20 }, _now);
@@ -137,21 +137,56 @@ public class CoreEntityTests
     }
 
     [Fact]
-    public void ActivityMovesBetweenProgramsInAnyStateAndOnlyDraftsAreDiscarded()
+    public void OnlyDraftsCanBeDiscarded()
     {
         var activity = Activity.Create(Guid.NewGuid(), Guid.NewGuid(), Plan(), _now);
         activity.Publish(_now);
         activity.Cancel("sin sede", _now);
 
-        activity.MoveTo(null, _now);
-        Assert.Null(activity.ProgramId);
-        Assert.Throws<DomainRuleViolationException>(() => activity.MoveTo(null, _now));
         Assert.Throws<DomainRuleViolationException>(() => activity.Discard(_now));
 
         var draft = Activity.Create(null, Guid.NewGuid(), Plan(), _now);
         draft.Discard(_now);
         Assert.NotNull(draft.DeletedAt);
         Assert.False(draft.IsPublic);
+    }
+
+    [Fact]
+    public void SimpleActivityRejectsSignupConfigurationButAcceptsMapCoordinates()
+    {
+        var activity = Activity.Create(null, Guid.NewGuid(), Plan(), _now);
+        Assert.Throws<DomainRuleViolationException>(() => activity.ConfigureParticipation([], false, -17, -63, 100, false, 0, _now));
+        activity.ConfigureParticipation([], false, -17, -63, null, false, 0, _now);
+        Assert.Equal(-17m, activity.Latitude);
+        activity.Publish(_now);
+        Assert.Throws<DomainRuleViolationException>(() => activity.ConfigureParticipation([], false, null, null, null, false, 0, _now));
+    }
+
+    [Fact]
+    public void PeriodClosesOnlyAfterItsConfiguredEndAndCreatesAnOpenSuccessor()
+    {
+        var period = new AcademicPeriod { Label = "I", StartsAt = _now.AddDays(-90), IsActive = true };
+        Assert.Throws<DomainRuleViolationException>(() => period.Close("II", _now));
+        period.Edit("I", _now.AddDays(1), _now);
+        Assert.Throws<DomainRuleViolationException>(() => period.Close("II", _now));
+        var next = period.Close("II", _now.AddDays(2));
+        Assert.False(period.IsActive);
+        Assert.True(next.IsActive);
+        Assert.Equal(period.Id, next.PreviousPeriodId);
+        Assert.Null(next.EndsAt);
+        Assert.Throws<DomainRuleViolationException>(() => period.Edit("old", null, _now));
+    }
+
+    [Fact]
+    public void SignupWindowEndsAtScheduledStartEvenIfWorkerHasNotRun()
+    {
+        var activity = Activity.Create(null, Guid.NewGuid(), Plan() with { RequiresRegistration = true }, _now);
+        Assert.False(activity.AcceptsEnrollment(_now));
+        activity.Publish(_now);
+        Assert.True(activity.AcceptsEnrollment(activity.StartsAt.AddTicks(-1)));
+        Assert.False(activity.AcceptsEnrollment(activity.StartsAt));
+        activity.Cancel("Cancelada", _now);
+        Assert.False(activity.AcceptsEnrollment(_now));
     }
 
     private static ActivityPlan Plan() => new(
@@ -165,7 +200,6 @@ public class CoreEntityTests
         false,
         null,
         2,
-        null,
         null,
         null);
 }

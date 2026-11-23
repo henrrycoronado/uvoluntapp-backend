@@ -19,9 +19,12 @@ public sealed record CatalogActivitySummary(
     int? Capacity,
     decimal? ExpectedHours,
     string? ParticipationConditions,
-    string? PeriodicityNote,
-    string Status)
+    ParticipationResponse Participation,
+    string Status,
+    bool ImagePresent = false)
 {
+    public string? ImageUrl => ImagePresent ? $"/api/v1/activities/{Id}/image" : null;
+
     public static CatalogActivitySummary From(Activity activity, string? programName) => new(
         activity.Id,
         activity.Title,
@@ -37,7 +40,8 @@ public sealed record CatalogActivitySummary(
         activity.RequiresRegistration,
         activity.Capacity,
         activity.ExpectedHours,
-        activity.ParticipationConditions,
-        activity.PeriodicityNote,
-        activity.Status.ToString());
+        activity.ParticipationConditions ?? "Ninguna",
+        ParticipationResponse.From(activity),
+        activity.Status.ToString(),
+        activity.Images.Count > 0);
 }

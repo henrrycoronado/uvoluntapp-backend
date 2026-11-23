@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Uvoluntapp.Backend.Application.Exceptions.Accounts;
+using Uvoluntapp.Backend.Application.Exceptions.Activities;
 using Uvoluntapp.Backend.Application.Exceptions.Common;
 using Uvoluntapp.Backend.Domain.Utils.Exceptions;
 
@@ -22,15 +23,16 @@ internal sealed class GlobalExceptionHandler(PlanningRejectionAudit planningAudi
         var (status, title) = mapped.Value;
         httpContext.Response.StatusCode = status;
         httpContext.Response.ContentType = "application/problem+json";
-        await httpContext.Response.WriteAsJsonAsync(
-            new ProblemDetails { Type = "about:blank", Title = title, Status = status, Detail = exception.Message },
-            cancellationToken);
+        var problem = new ProblemDetails { Type = "about:blank", Title = title, Status = status, Detail = exception.Message };
+        problem.Extensions["code"] = exception is EnrollmentException rejected ? rejected.Code : $"HTTP_{status}";
+        await httpContext.Response.WriteAsJsonAsync(problem, options: null, contentType: "application/problem+json", cancellationToken);
         await planningAudit.RecordAsync(httpContext, status, exception.Message, cancellationToken);
         return true;
     }
 
     private static (int Status, string Title)? Map(Exception exception) => exception switch
     {
+        EnrollmentException e => (e.Code == "INVALID_GROUP" ? 422 : 409, "Inscripción rechazada."),
         UnauthorizedAccessException => (401, "Sesión inválida."),
         NotFoundException => (404, "Recurso no encontrado."),
         ForbiddenException => (403, "Permiso denegado."),

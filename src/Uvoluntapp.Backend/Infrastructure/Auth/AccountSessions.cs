@@ -39,9 +39,14 @@ public sealed class AccountSessions(
         // Una cuenta creada con Google no tiene contraseña: se prueba el buzón una vez para crearla.
         if (user.PasswordHash is null)
         {
+            if (!user.EmailConfirmed)
+            {
+                throw new AccountException(AccountError.InvalidSession);
+            }
+
             await StartPasswordSetupAsync(user, email, cancellationToken);
             await tx.CommitAsync(cancellationToken);
-            throw new AccountException(AccountError.PasswordSetupRequired);
+            throw new AccountException(AccountError.InvalidSession);
         }
 
         if (!await users.CheckPasswordAsync(user, request.Password))
@@ -161,7 +166,7 @@ public sealed class AccountSessions(
                 .OrderByDescending(r => r.CreatedAt)
                 .FirstOrDefaultAsync(cancellationToken);
             details["rejectionReason"] = last?.RejectionReason;
-            details["reapplyAvailableAt"] = last?.ReviewedAt?.AddDays(1);
+            details["reapplyAvailableAt"] = last?.ReviewedAt?.AddHours(12);
         }
 
         return details;

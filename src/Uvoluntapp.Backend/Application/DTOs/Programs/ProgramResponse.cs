@@ -13,8 +13,11 @@ public sealed record ProgramResponse(
     DateTime CreatedAt,
     DateTime? UpdatedAt,
     DateTime? ArchivedAt,
-    bool CanManage = false)
+    bool CanManage = false,
+    bool ImagePresent = false)
 {
+    public string? ImageUrl => ImagePresent ? $"/api/v1/programs/{Id}/cover" : null;
+
     public static ProgramResponse From(VolunteerProgram program, bool canManage = false) => new(
         program.Id,
         program.Name,
@@ -25,5 +28,6 @@ public sealed record ProgramResponse(
         program.CreatedAt,
         program.UpdatedAt,
         program.DeletedAt,
-        canManage);
+        canManage,
+        program.Images.Count > 0);
 }

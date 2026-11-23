@@ -1,4 +1,3 @@
-using System.Globalization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Uvoluntapp.Backend.Domain.Entities.Accounts;
@@ -34,7 +33,6 @@ public sealed class DatabaseInitializer(
         logger.LogInformation("Migraciones aplicadas.");
 
         await EnsureFounderAdminsAsync(scope.ServiceProvider, cancellationToken);
-        await EnsureAcademicPeriodsAsync(db, cancellationToken);
 
         if (!environment.IsDevelopment())
         {
@@ -163,13 +161,25 @@ public sealed class DatabaseInitializer(
             var userId = await db.Users.Where(u => u.NormalizedEmail == person.Email.ToUpperInvariant()).Select(u => u.Id).FirstAsync(cancellationToken);
             foreach (var (role, program) in person.Roles)
             {
-                var scope = program is null ? RoleScope.GLOBAL : RoleScope.PROGRAM;
+                var target = program;
+                var scope = RoleScope.PROGRAM;
+                if (role == AssignedRole.OPERATIONAL_LEADER)
+                {
+                    scope = RoleScope.ACTIVITY;
+                    target = await db.Activities.Where(a => a.ProgramId == program && a.DeletedAt == null).OrderBy(a => a.Id).Select(a => (Guid?)a.Id).FirstOrDefaultAsync(cancellationToken);
+                }
+
+                if (!target.HasValue)
+                {
+                    continue;
+                }
+
                 var exists = await db.RoleAssignments.AnyAsync(
-                    r => r.UserId == userId && r.Role == role && r.ScopeId == program && r.RevokedAt == null,
+                    r => r.UserId == userId && r.Role == role && r.ScopeId == target && r.Scope == scope && r.RevokedAt == null,
                     cancellationToken);
                 if (!exists)
                 {
-                    db.RoleAssignments.Add(RoleAssignment.Assign(userId, role, scope, program, admin == Guid.Empty ? userId : admin));
+                    db.RoleAssignments.Add(RoleAssignment.Assign(userId, role, scope, target, admin == Guid.Empty ? userId : admin));
                 }
             }
 
@@ -245,48 +255,5 @@ public sealed class DatabaseInitializer(
         {
             await EnsureAdminAsync(provider, founder.Email!, founder.Password!, $"Administrador {founder.Index}", cancellationToken);
         }
-    }
-
-    /// <summary>
-    /// En M2 los periodos no se gestionan: se siembran desde ACADEMIC_PERIODS
-    /// ("2026-1:2026-02-01:2026-07-15;2026-2:2026-08-01:2026-12-15"). Sin duplicar por etiqueta.
-    /// </summary>
-    private async Task EnsureAcademicPeriodsAsync(AppDbContext db, CancellationToken cancellationToken)
-    {
-        var configured = configuration["ACADEMIC_PERIODS"];
-        if (string.IsNullOrWhiteSpace(configured))
-        {
-            if (!environment.IsDevelopment())
-            {
-                logger.LogWarning("Sin periodos académicos configurados: define ACADEMIC_PERIODS.");
-                return;
-            }
-
-            var year = DateTime.UtcNow.Year;
-            configured = $"{year}-1:{year}-02-01:{year}-07-15;{year}-2:{year}-08-01:{year}-12-15";
-        }
-
-        var existing = await db.AcademicPeriods.Select(p => p.Label).ToListAsync(cancellationToken);
-        foreach (var entry in configured.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            var parts = entry.Split(':', StringSplitOptions.TrimEntries);
-            if (parts.Length != 3
-                || !DateTime.TryParse(parts[1], CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out var start)
-                || !DateTime.TryParse(parts[2], CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out var end)
-                || end <= start)
-            {
-                throw new InvalidOperationException($"Periodo académico inválido en ACADEMIC_PERIODS: '{entry}'. Formato: etiqueta:AAAA-MM-DD:AAAA-MM-DD.");
-            }
-
-            if (existing.Contains(parts[0]))
-            {
-                continue;
-            }
-
-            db.AcademicPeriods.Add(new AcademicPeriod { Label = parts[0], StartsAt = start, EndsAt = end });
-            existing.Add(parts[0]);
-        }
-
-        await db.SaveChangesAsync(cancellationToken);
     }
 }

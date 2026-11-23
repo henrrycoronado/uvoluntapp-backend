@@ -25,10 +25,11 @@ public sealed class ActivityService(
     IAcademicPeriodStore periods,
     IRoleAssignmentStore roles,
     AuditRecorder audit,
+    ActivityNotices notices,
     IUnitOfWork unitOfWork,
     TimeProvider clock)
 {
-    private static readonly ActivityStatus[] _publicStatuses = [ActivityStatus.PUBLISHED, ActivityStatus.IN_PROGRESS];
+    private static readonly ActivityStatus[] _publicStatuses = [ActivityStatus.PUBLISHED, ActivityStatus.IN_PROGRESS, ActivityStatus.FINISHED, ActivityStatus.CANCELLED];
 
     public async Task<PaginatedItems<ActivityResponse>> ListAsync(
         Guid actorId,
@@ -41,7 +42,7 @@ public sealed class ActivityService(
         // Voluntario: solo lo público. Líderes: todo lo no borrador y los borradores de su ámbito. ADMIN: todo.
         IReadOnlyCollection<ActivityStatus>? statuses = reviewer
             ? query.Status is { } value ? [value] : null
-            : query.Status is { } wanted && _publicStatuses.Contains(wanted) ? [wanted] : _publicStatuses;
+            : query.Status is { } wanted ? _publicStatuses.Where(s => s == wanted).ToArray() : _publicStatuses;
         var result = await activities.SearchAsync(
             new ActivitySearch(
                 query.ProgramId,
@@ -54,7 +55,7 @@ public sealed class ActivityService(
                 AllDrafts: actor.IsGlobalAdmin,
                 DraftProgramIds: PlanningAccess.InternalProgramIds(actor),
                 DraftActivityIds: PlanningAccess.InternalActivityIds(actor),
-                OnlyActivePrograms: !reviewer,
+                OnlyActivePrograms: false,
                 query.Page,
                 query.PageSize),
             cancellationToken);
@@ -89,18 +90,17 @@ public sealed class ActivityService(
             access.RequireAdmin(actor, "Solo un ADMIN crea actividades libres; luego puede asignar su gestión a un líder.");
         }
 
-        var periodId = request.PeriodId ?? throw new DomainRuleViolationException("El periodo académico es obligatorio.");
-        var period = await periods.FindAsync(periodId, cancellationToken) ?? throw new DomainRuleViolationException("El periodo académico no existe.");
+        var period = await periods.ActiveAsync(cancellationToken) ?? throw new DomainRuleViolationException("No hay periodo activo.");
+        if (request.PeriodId.HasValue && request.PeriodId != period.Id)
+        {
+            throw new DomainRuleViolationException("La actividad debe pertenecer al periodo activo.");
+        }
+
         var plan = Plan(request);
         EnsureWithinPeriod(period, plan.StartsAt);
 
         var now = Now();
         var activity = Activity.Create(request.ProgramId, period.Id, plan, now);
-        if (activity.ProgramId is { } linkedProgram)
-        {
-            await periods.EnsureProgramLinkAsync(linkedProgram, period.Id, cancellationToken);
-        }
-
         await activities.AddAsync(activity, cancellationToken);
         await audit.RecordAsync(actorId, AuditActions.ActivityCreated, AuditResourceTypes.Activity, activity.Id, new Dictionary<string, object?> { ["programId"] = activity.ProgramId, ["title"] = activity.Title }, now, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -111,6 +111,13 @@ public sealed class ActivityService(
     {
         var (actor, activity) = await ManagedAsync(actorId, activityId, cancellationToken);
         var now = Now();
+        if ((request.ProgramId.HasValue && request.ProgramId != activity.ProgramId) || (request.PeriodId.HasValue && request.PeriodId != activity.AcademicPeriodId))
+        {
+            throw new DomainRuleViolationException("El programa y el periodo de la actividad son inmutables.");
+        }
+
+        var period = await periods.FindAsync(activity.AcademicPeriodId, cancellationToken) ?? throw new NotFoundException("El periodo no existe.");
+        EnsureWithinPeriod(period, Utc(request.StartsAt));
         var changed = activity.UpdatePlan(Plan(request), now);
         if (changed.Count > 0)
         {
@@ -119,6 +126,15 @@ public sealed class ActivityService(
         }
 
         return await ResponseAsync(actor, activity, cancellationToken);
+    }
+
+    public async Task<ActivityResponse> ConfigureAsync(Guid actorId, Guid activityId, ParticipationRequest request, CancellationToken cancellationToken)
+    {
+        var (actor, activity) = await ManagedAsync(actorId, activityId, cancellationToken);
+        var groups = request.Groups.Select(g => new ActivityGroup { ActivityId = activityId, Name = g.Name?.Trim() ?? string.Empty, StartsAt = g.StartsAt.UtcDateTime, EndsAt = g.EndsAt.UtcDateTime, Capacity = g.Capacity }).ToList();
+        var now = Now();
+        activity.ConfigureParticipation(groups, request.AllowMultipleGroups, request.Latitude, request.Longitude, request.GeofenceRadiusM, request.AllowSelfCheckin, request.CheckinToleranceMin, now);
+        return await RecordAsync(actor, activity, AuditActions.ActivityUpdated, new Dictionary<string, object?> { ["fields"] = new[] { "participation" } }, now, cancellationToken);
     }
 
     public async Task<ActivityResponse> PublishAsync(Guid actorId, Guid activityId, CancellationToken cancellationToken = default)
@@ -151,7 +167,9 @@ public sealed class ActivityService(
         var (actor, activity) = await ManagedAsync(actorId, activityId, cancellationToken);
         var now = Now();
         activity.Cancel(reason, now);
-        return await RecordAsync(actor, activity, AuditActions.ActivityCancelled, new Dictionary<string, object?> { ["reason"] = activity.CancellationReason }, now, cancellationToken);
+        var response = await RecordAsync(actor, activity, AuditActions.ActivityCancelled, new Dictionary<string, object?> { ["reason"] = activity.CancellationReason }, now, cancellationToken);
+        await notices.SendAsync(activity, $"Se canceló {activity.Title}. Motivo: {activity.CancellationReason}", cancellationToken);
+        return response;
     }
 
     public async Task DiscardAsync(Guid actorId, Guid activityId, CancellationToken cancellationToken = default)
@@ -166,6 +184,8 @@ public sealed class ActivityService(
     {
         var (actor, activity) = await ManagedAsync(actorId, activityId, cancellationToken);
         var now = Now();
+        var period = await periods.FindAsync(activity.AcademicPeriodId, cancellationToken) ?? throw new NotFoundException("El periodo no existe.");
+        EnsureWithinPeriod(period, Utc(request.NewStartsAt));
         var record = activity.Reschedule(Utc(request.NewStartsAt), Utc(request.NewEndsAt), request.Reason, actorId, now);
         await activities.AddRescheduleAsync(record, cancellationToken);
         var conflicts = await ConflictsAsync(activity.Id, activity.ProgramId, activity.StartsAt, activity.EndsAt, activity.Location, cancellationToken);
@@ -184,6 +204,7 @@ public sealed class ActivityService(
             now,
             cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+        await notices.SendAsync(activity, $"Nuevo horario de {activity.Title}: {Describe(activity)}. Motivo: {record.Reason}", cancellationToken);
         return new RescheduleActivityResponse(await ResponseAsync(actor, activity, cancellationToken), ActivityRescheduleResponse.From(record), conflicts);
     }
 
@@ -229,64 +250,6 @@ public sealed class ActivityService(
         return new CheckConflictsResponse(conflicts.Count > 0, conflicts);
     }
 
-    /// <summary>
-    /// Cambiar el programa de una actividad o volverla libre (SCRUM-123). Solo ADMIN, en cualquier estado.
-    /// Las asignaciones sobre la actividad dejan de cubrirla: sus responsables pasan a ser los del nuevo destino.
-    /// </summary>
-    /// <param name="actorId">ADMIN que hace el cambio.</param>
-    /// <param name="activityId">Actividad.</param>
-    /// <param name="request">Programa destino (vacío = libre) y motivo.</param>
-    /// <param name="cancellationToken">Cancelación.</param>
-    /// <returns>La actividad actualizada.</returns>
-    public async Task<ActivityResponse> MoveAsync(Guid actorId, Guid activityId, MoveActivityRequest request, CancellationToken cancellationToken = default)
-    {
-        var actor = await access.ResolveAsync(actorId, cancellationToken);
-        access.RequireAdmin(actor, "Solo un ADMIN cambia el programa de una actividad.");
-        if (string.IsNullOrWhiteSpace(request.Reason))
-        {
-            throw new DomainRuleViolationException("El motivo es obligatorio.");
-        }
-
-        var activity = await activities.FindAsync(activityId, cancellationToken) ?? throw new NotFoundException("La actividad no existe.");
-        if (request.ProgramId is { } programId)
-        {
-            var program = await programs.FindAsync(programId, cancellationToken);
-            if (program is null || program.IsArchived)
-            {
-                throw new NotFoundException("El programa destino no existe.");
-            }
-
-            await periods.EnsureProgramLinkAsync(programId, activity.AcademicPeriodId, cancellationToken);
-        }
-
-        var now = Now();
-        var previous = activity.ProgramId;
-        activity.MoveTo(request.ProgramId, now);
-        var delegated = await roles.ListActiveForScopesAsync([], [activity.Id], now, cancellationToken);
-        foreach (var assignment in delegated)
-        {
-            assignment.Revoke(now);
-            await audit.RecordRoleRevokedAsync(actorId, assignment, now, cancellationToken);
-        }
-
-        await audit.RecordAsync(
-            actorId,
-            AuditActions.ActivityMoved,
-            AuditResourceTypes.Activity,
-            activity.Id,
-            new Dictionary<string, object?>
-            {
-                ["previousProgramId"] = previous,
-                ["newProgramId"] = activity.ProgramId,
-                ["reason"] = request.Reason.Trim(),
-                ["revokedAssignments"] = delegated.Count,
-            },
-            now,
-            cancellationToken);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
-        return await ResponseAsync(actor, activity, cancellationToken);
-    }
-
     private static DateTime Utc(DateTime value) => value.Kind switch
     {
         DateTimeKind.Utc => value,
@@ -313,14 +276,13 @@ public sealed class ActivityService(
             request.Capacity,
             request.ExpectedHours,
             request.ParticipationConditions,
-            request.PeriodicityNote,
             request.GroupLabel);
     }
 
     // Periodo incoherente (SCRUM-47): la actividad empieza dentro del periodo.
     private static void EnsureWithinPeriod(AcademicPeriod period, DateTime startsAt)
     {
-        if (startsAt < period.StartsAt || startsAt >= period.EndsAt.AddDays(1))
+        if (startsAt < period.StartsAt || startsAt >= period.EndsAt?.AddDays(1))
         {
             throw new DomainRuleViolationException($"La actividad debe empezar dentro del periodo {period.Label}.");
         }
@@ -429,8 +391,7 @@ public sealed class ActivityService(
         var response = ActivityResponse.From(
             activity,
             activity.ProgramId is { } id && names.TryGetValue(id, out var name) ? name : null,
-            canManage: activity.DeletedAt is null && access.CanManageActivity(actor, activity),
-            canMove: actor.IsGlobalAdmin && activity.DeletedAt is null);
+            canManage: activity.DeletedAt is null && access.CanManageActivity(actor, activity));
 
         // El enlace de reunión es dato interno hasta que la actividad es pública.
         return internals || activity.IsPublic ? response : response with { MeetingUrl = null };

@@ -11,4 +11,4 @@ public sealed record GoogleAuthResponse(
     string Email = "",
     bool RequiresApprovalData = false,
     string? FirstName = null,
-    string? LastName = null);
+    string? LastName = null, bool RequiresProfileData = false);

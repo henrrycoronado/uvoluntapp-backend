@@ -20,11 +20,11 @@ public sealed class Activity : Entity
 
     public const int GroupLabelMaxLength = 100;
 
-    public const int NoteMaxLength = 500;
+    public List<MediaAsset> Images { get; } = [];
 
-    public Guid? ProgramId { get; set; }
+    public Guid? ProgramId { get; init; }
 
-    public Guid AcademicPeriodId { get; set; }
+    public Guid AcademicPeriodId { get; init; }
 
     public string Title { get; set; } = string.Empty;
 
@@ -50,9 +50,21 @@ public sealed class Activity : Entity
 
     public string? ParticipationConditions { get; set; }
 
-    public string? PeriodicityNote { get; set; }
+    public List<ActivityGroup> Groups { get; } = [];
 
-    // Solo identifica actividades libres; al pasar a un programa se conserva como dato informativo.
+    public bool AllowMultipleGroups { get; private set; }
+
+    public decimal? Latitude { get; private set; }
+
+    public decimal? Longitude { get; private set; }
+
+    public int? GeofenceRadiusM { get; private set; }
+
+    public bool AllowSelfCheckin { get; private set; }
+
+    public int CheckinToleranceMin { get; private set; }
+
+    // Etiqueta informativa heredada de la planificación.
     public string? GroupLabel { get; set; }
 
     public string? CancellationReason { get; private set; }
@@ -63,7 +75,7 @@ public sealed class Activity : Entity
 
     public DateTime? FinishedAt { get; private set; }
 
-    public bool IsPublic => DeletedAt is null && Status is ActivityStatus.PUBLISHED or ActivityStatus.IN_PROGRESS;
+    public bool IsPublic => DeletedAt is null && Status != ActivityStatus.DRAFT;
 
     public static Activity Create(Guid? programId, Guid periodId, ActivityPlan plan, DateTime nowUtc)
     {
@@ -77,6 +89,71 @@ public sealed class Activity : Entity
         activity.ApplyPlan(plan);
         activity.SetSchedule(plan.StartsAt, plan.EndsAt);
         return activity;
+    }
+
+    public bool AcceptsEnrollment(DateTime nowUtc) =>
+        RequiresRegistration && Status == ActivityStatus.PUBLISHED && StartsAt > nowUtc && DeletedAt == null;
+
+    public void ConfigureParticipation(List<ActivityGroup> groups, bool multiple, decimal? latitude, decimal? longitude, int? radius, bool selfCheckin, int tolerance, DateTime now)
+    {
+        EnsureNotDeleted();
+        if (Status != ActivityStatus.DRAFT)
+        {
+            throw new DomainRuleViolationException("Solo se configura la participación en borrador.");
+        }
+
+        if ((latitude is null) != (longitude is null) || latitude is < -90 or > 90 || longitude is < -180 or > 180)
+        {
+            throw new DomainRuleViolationException("Las coordenadas del lugar deben formar un par válido.");
+        }
+
+        if (!RequiresRegistration && (groups.Count > 0 || multiple || radius.HasValue || selfCheckin || tolerance != 0))
+        {
+            throw new DomainRuleViolationException("SIMPLE no permite configuración de inscripción ni automarcación.");
+        }
+
+        if ((multiple && groups.Count == 0) || (groups.Count > 0 && Capacity.HasValue))
+        {
+            throw new DomainRuleViolationException("En actividades grupales el cupo se configura por grupo.");
+        }
+
+        if (radius is <= 0 || (radius.HasValue && latitude is null) || tolerance < 0)
+        {
+            throw new DomainRuleViolationException("Radio, coordenadas o tolerancia inválidos.");
+        }
+
+        foreach (var group in groups)
+        {
+            group.Validate(StartsAt, EndsAt);
+        }
+
+        // Conservar identificadores de turnos que llegan iguales en un reintento del PUT.
+        var obsolete = Groups.ToList();
+        foreach (var group in groups)
+        {
+            var match = obsolete.Find(g => g.Name == group.Name && g.StartsAt == group.StartsAt && g.EndsAt == group.EndsAt && g.Capacity == group.Capacity);
+            if (match == null)
+            {
+                Groups.Add(group);
+            }
+            else
+            {
+                obsolete.Remove(match);
+            }
+        }
+
+        foreach (var removed in obsolete)
+        {
+            Groups.Remove(removed);
+        }
+
+        AllowMultipleGroups = multiple;
+        Latitude = latitude;
+        Longitude = longitude;
+        GeofenceRadiusM = radius;
+        AllowSelfCheckin = selfCheckin;
+        CheckinToleranceMin = tolerance;
+        UpdatedAt = now;
     }
 
     /// <summary>Edición de planificación según el estado (SCRUM-48).</summary>
@@ -101,13 +178,17 @@ public sealed class Activity : Entity
         {
             // Publicada o en ejecución: solo campos informativos; el horario va por reprogramación.
             if (Clean(plan.Title, TitleMaxLength, "El título") != Title
+                || Clean(plan.MeetingUrl, UrlMaxLength, "El enlace") != MeetingUrl
+                || plan.ExpectedHours != ExpectedHours
+                || Clean(plan.ParticipationConditions, TextMaxLength, "Los requisitos") != ParticipationConditions
+                || Clean(plan.GroupLabel, GroupLabelMaxLength, "La etiqueta") != GroupLabel
                 || plan.Modality != Modality
                 || plan.RequiresRegistration != RequiresRegistration
                 || plan.StartsAt != StartsAt
                 || plan.EndsAt != EndsAt)
             {
                 throw new DomainRuleViolationException(
-                    "Una actividad publicada solo cambia descripción, lugar, enlace, condiciones, horas, nota y cupo (solo hacia arriba). El horario se cambia reprogramando.");
+                    "Una actividad publicada solo cambia descripción, lugar y cupo (solo hacia arriba). El horario se cambia reprogramando.");
             }
 
             if (!CapacityOnlyGrows(Capacity, plan.Capacity))
@@ -227,22 +308,17 @@ public sealed class Activity : Entity
             NewEndsAt = newEndsAt,
             Reason = reason.Trim(),
         };
+        var shift = newStartsAt - StartsAt;
+        foreach (var group in Groups)
+        {
+            group.StartsAt += shift;
+            group.EndsAt += shift;
+            group.Validate(newStartsAt, newEndsAt);
+        }
+
         SetSchedule(newStartsAt, newEndsAt);
         UpdatedAt = nowUtc;
         return record;
-    }
-
-    // Solo el ADMIN cambia el programa, en cualquier estado (SCRUM-123).
-    public void MoveTo(Guid? programId, DateTime nowUtc)
-    {
-        EnsureNotDeleted();
-        if (programId == ProgramId)
-        {
-            throw new DomainRuleViolationException("La actividad ya pertenece a ese destino.");
-        }
-
-        ProgramId = programId;
-        UpdatedAt = nowUtc;
     }
 
     private static bool CapacityOnlyGrows(int? current, int? next) =>
@@ -263,9 +339,9 @@ public sealed class Activity : Entity
     {
         var title = Clean(plan.Title, TitleMaxLength, "El título")
             ?? throw new DomainRuleViolationException("El título es obligatorio.");
-        if (plan.Capacity is <= 0)
+        if (plan.Capacity is < 0)
         {
-            throw new DomainRuleViolationException("El cupo debe ser un entero positivo o quedar vacío (sin límite).");
+            throw new DomainRuleViolationException("El cupo debe ser un entero no negativo o quedar vacío (sin límite).");
         }
 
         if (plan.Capacity is not null && !plan.RequiresRegistration)
@@ -284,6 +360,16 @@ public sealed class Activity : Entity
             throw new DomainRuleViolationException("El enlace debe ser una dirección web válida.");
         }
 
+        if ((!plan.RequiresRegistration && (Groups.Count > 0 || AllowSelfCheckin || GeofenceRadiusM.HasValue || CheckinToleranceMin != 0)) || (Groups.Count > 0 && plan.Capacity.HasValue))
+        {
+            throw new DomainRuleViolationException("Ajusta primero la configuración de participación.");
+        }
+
+        foreach (var group in Groups)
+        {
+            group.Validate(plan.StartsAt, plan.EndsAt);
+        }
+
         Title = title;
         Description = Clean(plan.Description, TextMaxLength, "La descripción");
         Modality = plan.Modality;
@@ -293,7 +379,7 @@ public sealed class Activity : Entity
         Capacity = plan.RequiresRegistration ? plan.Capacity : null;
         ExpectedHours = plan.ExpectedHours;
         ParticipationConditions = Clean(plan.ParticipationConditions, TextMaxLength, "Las condiciones");
-        PeriodicityNote = Clean(plan.PeriodicityNote, NoteMaxLength, "La nota de periodicidad");
+
         GroupLabel = Clean(plan.GroupLabel, GroupLabelMaxLength, "La etiqueta de grupo");
     }
 
@@ -343,7 +429,7 @@ public sealed class Activity : Entity
         ["capacity"] = Capacity,
         ["expectedHours"] = ExpectedHours,
         ["participationConditions"] = ParticipationConditions,
-        ["periodicityNote"] = PeriodicityNote,
+
         ["groupLabel"] = GroupLabel,
     };
 }

@@ -1,5 +1,6 @@
 using Uvoluntapp.Backend.Application.DTOs.Administration;
 using Uvoluntapp.Backend.Application.Exceptions.Common;
+using Uvoluntapp.Backend.Application.Interfaces.Accounts;
 using Uvoluntapp.Backend.Application.Interfaces.Administration;
 using Uvoluntapp.Backend.Application.Interfaces.Common;
 using Uvoluntapp.Backend.Application.Services.Accounts;
@@ -18,6 +19,10 @@ public sealed class UserAdministrationService(
     AccountSuspensionService suspension,
     AuditRecorder audit,
     IUnitOfWork unitOfWork,
+    IRecoveryTokenGenerator tokens,
+    IRecoveryAccountStore recovery,
+    IEmailSender mail,
+    IWebLinks links,
     TimeProvider clock)
 {
     public async Task<PaginatedItems<UserSummaryResponse>> ListAsync(
@@ -62,23 +67,6 @@ public sealed class UserAdministrationService(
             user.VerifiedBy);
     }
 
-    // Verificación manual: un ADMIN responde por la identidad de una cuenta sin correo institucional.
-    public async Task VerifyAsync(Guid actorId, Guid userId, CancellationToken cancellationToken = default)
-    {
-        await guard.RequireGlobalAdminAsync(actorId, cancellationToken);
-        var user = await accounts.FindAsync(userId, cancellationToken)
-            ?? throw new NotFoundException("El usuario no existe.");
-        if (user.VerifiedAt is not null)
-        {
-            throw new ConflictException("La cuenta ya está verificada.");
-        }
-
-        var now = clock.GetUtcNow().UtcDateTime;
-        await accounts.SetVerificationAsync(userId, now, actorId, cancellationToken);
-        await audit.RecordAsync(actorId, AuditActions.AccountVerified, AuditResourceTypes.User, userId, null, now, cancellationToken);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
-    }
-
     // Para quien perdió el acceso a su correo (egresados). Sin OTP: lo decide un ADMIN con motivo.
     // La cuenta queda verificada solo si el correo nuevo es institucional.
     public async Task ChangeEmailAsync(
@@ -101,7 +89,7 @@ public sealed class UserAdministrationService(
             throw new ConflictException("Ese correo no se puede usar.");
         }
 
-        var institutional = InstitutionalEmailDomain.IsInstitutional(request.NewEmail.Trim());
+        var institutional = user.InstitutionalEmailVerifiedAt.HasValue && string.Equals(user.InstitutionalEmail, request.NewEmail.Trim(), StringComparison.OrdinalIgnoreCase);
         await accounts.SetVerificationAsync(userId, institutional ? now : null, null, cancellationToken);
         await audit.RecordAsync(
             actorId,
@@ -111,7 +99,9 @@ public sealed class UserAdministrationService(
             new Dictionary<string, object?> { ["reason"] = request.Reason.Trim(), ["verified"] = institutional },
             now,
             cancellationToken);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+        var linkToken = tokens.Create();
+        await recovery.SaveTokenAsync(PasswordRecoveryToken.Create(userId, linkToken.TokenHash, now, request.NewEmail), cancellationToken);
+        await mail.SendAsync(request.NewEmail.Trim(), "Recuperación de acceso", $"Recupera tu acceso con este enlace de un uso: {links.PasswordReset(linkToken.RawToken)}", cancellationToken);
     }
 
     public async Task SuspendAsync(

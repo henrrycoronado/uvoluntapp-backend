@@ -20,7 +20,7 @@ public static class GoogleAccountLinkingPolicy
             throw new DomainRuleViolationException("La identidad de Google no está verificada.");
         }
 
-        var institutional = string.Equals(identity.HostedDomain, "ucb.edu.bo", StringComparison.OrdinalIgnoreCase);
+        var institutional = Uvoluntapp.Backend.Domain.Utils.Constants.InstitutionalEmailDomain.IsInstitutional(identity.Email) && string.Equals(identity.HostedDomain, "ucb.edu.bo", StringComparison.OrdinalIgnoreCase);
         if (accountExists && (!accountEmailVerified || !identity.EmailVerified))
         {
             throw new DomainRuleViolationException("No se puede vincular la identidad externa.");

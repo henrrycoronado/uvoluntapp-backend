@@ -26,7 +26,7 @@ public sealed class EnumPersistenceTests(PostgresFixture fixture) : IClassFixtur
         var grant = new AdminGrantRequest { BeneficiaryId = user.Id, RequestedBy = reviewer.Id };
         var role = new RoleAssignment { UserId = user.Id, GrantedBy = reviewer.Id, Role = AssignedRole.ADMIN };
         var program = new VolunteerProgram();
-        var period = new AcademicPeriod { Label = Guid.NewGuid().ToString("N")[..12] };
+        var period = await db.AcademicPeriods.SingleAsync(p => p.IsActive);
         var activity = new Activity
         {
             AcademicPeriodId = period.Id,
@@ -34,7 +34,7 @@ public sealed class EnumPersistenceTests(PostgresFixture fixture) : IClassFixtur
             StartsAt = DateTime.UtcNow,
             EndsAt = DateTime.UtcNow.AddHours(1)
         };
-        db.AddRange(approval, grant, role, program, period, activity);
+        db.AddRange(approval, grant, role, program, activity);
         await db.SaveChangesAsync();
 
         await AssertRoundTrip(db, user, u => u.Status,
@@ -56,7 +56,7 @@ public sealed class EnumPersistenceTests(PostgresFixture fixture) : IClassFixtur
         await using var db = fixture.CreateContext();
         var user = db.Users.Add(new AppUser()).Entity;
         var program = db.Programs.Add(new VolunteerProgram()).Entity;
-        var period = db.AcademicPeriods.Add(new AcademicPeriod { Label = Guid.NewGuid().ToString("N")[..12] }).Entity;
+        var period = await db.AcademicPeriods.SingleAsync(p => p.IsActive);
         var activity = db.Activities.Add(new Activity
         {
             AcademicPeriodId = period.Id,

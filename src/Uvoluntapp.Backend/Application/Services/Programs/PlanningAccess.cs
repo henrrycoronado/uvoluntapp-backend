@@ -7,15 +7,7 @@ using Uvoluntapp.Backend.Domain.Utils.Enums;
 
 namespace Uvoluntapp.Backend.Application.Services.Programs;
 
-/// <summary>
-/// Único punto de autorización de M2 (programas y actividades). Reglas del usuario (19/11/2026):
-/// - ADMIN gestiona todo; es el único que crea programas, crea actividades libres y cambia el programa de una actividad.
-/// - PROGRAM_LEADER ve todos los programas y gestiona solo los asignados por un ADMIN, sus actividades
-///   y las actividades libres que un ADMIN le asigne.
-/// - OPERATIONAL_LEADER ve todos los programas y no gestiona; ve el detalle interno de su programa
-///   y de las actividades a las que fue delegado.
-/// - Las asignaciones vencidas o revocadas dejan de contar al instante.
-/// </summary>
+/// <summary>Autorización contextual de planificación por programa y actividad.</summary>
 public sealed class PlanningAccess(AdminAccessGuard guard, ContextAuthorizationService authorization)
 {
     public static bool CanSeeAllPrograms(ActorAccess actor) => actor.IsGlobalAdmin || actor.IsLeader;
@@ -24,7 +16,7 @@ public sealed class PlanningAccess(AdminAccessGuard guard, ContextAuthorizationS
     public static IReadOnlyCollection<Guid> InternalProgramIds(ActorAccess actor) => actor.Assignments
         .Where(a => a.Scope == RoleScope.PROGRAM
             && a.ScopeId is not null
-            && a.Role is AssignedRole.PROGRAM_LEADER or AssignedRole.OPERATIONAL_LEADER
+            && a.Role == AssignedRole.PROGRAM_LEADER
             && a.IsActiveAt(actor.AtUtc))
         .Select(a => a.ScopeId!.Value)
         .Distinct()

@@ -143,7 +143,7 @@ public sealed class ProfileAndApprovalTests
                 "Paz",
                 null,
                 "Voluntaria",
-                rejectedAt.AddHours(23)));
+                rejectedAt.AddHours(12).AddTicks(-1)));
 
         var resubmission = service.CreateRequest(
             actorId,
@@ -152,7 +152,7 @@ public sealed class ProfileAndApprovalTests
             "Paz",
             null,
             "Voluntaria",
-            rejectedAt.AddDays(1));
+            rejectedAt.AddHours(12));
 
         Assert.Equal(AccountApprovalStatus.REJECTED, rejected.Status);
         Assert.Equal(AccountApprovalStatus.PENDING_APPROVAL, resubmission.Status);

@@ -33,13 +33,6 @@ public sealed class UsersController(UserAdministrationService users) : Controlle
         return Ok(new MessageResponse { Message = "Cuenta suspendida." });
     }
 
-    [HttpPost("{userId:guid}/verify")]
-    public async Task<ActionResult<MessageResponse>> Verify(Guid userId, CancellationToken cancellationToken)
-    {
-        await users.VerifyAsync(CurrentUser.Id(User), userId, cancellationToken);
-        return Ok(new MessageResponse { Message = "Cuenta verificada." });
-    }
-
     [HttpPost("{userId:guid}/change-email")]
     public async Task<ActionResult<MessageResponse>> ChangeEmail(Guid userId, ChangeUserEmailRequest request, CancellationToken cancellationToken)
     {

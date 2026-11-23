@@ -2,10 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Uvoluntapp.Backend.Application.DTOs.Activities;
 
-/// <summary>
-/// Crear o editar una actividad (SCRUM-47, 48, 49, 53). En la edición se ignoran programa y periodo:
-/// el programa lo cambia solo un ADMIN (SCRUM-123).
-/// </summary>
+/// <summary>Ficha de planificación. Programa y periodo se fijan al crear la actividad.</summary>
 public sealed record ActivityRequest
 {
     public Guid? ProgramId { get; init; }
@@ -40,9 +37,6 @@ public sealed record ActivityRequest
 
     [MaxLength(2000)]
     public string? ParticipationConditions { get; init; }
-
-    [MaxLength(500)]
-    public string? PeriodicityNote { get; init; }
 
     [MaxLength(100)]
     public string? GroupLabel { get; init; }

@@ -21,7 +21,7 @@ public sealed class LeaderAssignmentPolicyTests
     [Fact]
     public void ProgramLeaderCanAssignOperationalLeaderInProgramItLeads()
     {
-        Assert.True(LeaderAssignmentPolicy.CanAssign(ActorLeadingA, AssignedRole.OPERATIONAL_LEADER, RoleScope.PROGRAM, _programA, null, _now));
+        Assert.True(LeaderAssignmentPolicy.CanAssign(ActorLeadingA, AssignedRole.OPERATIONAL_LEADER, RoleScope.ACTIVITY, Guid.NewGuid(), _programA, _now));
     }
 
     [Fact]

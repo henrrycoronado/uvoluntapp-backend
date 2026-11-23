@@ -10,6 +10,7 @@ public interface IAcademicPeriodStore
 
     Task<IReadOnlyList<AcademicPeriod>> ListForProgramAsync(Guid programId, CancellationToken cancellationToken = default);
 
-    // Crea el vínculo programa–periodo si aún no existe (SCRUM-46: sin gestión manual en M2).
-    Task EnsureProgramLinkAsync(Guid programId, Guid periodId, CancellationToken cancellationToken = default);
+    Task<AcademicPeriod?> ActiveAsync(CancellationToken ct);
+
+    Task<AcademicPeriod> ChangeAsync(Guid periodId, string label, DateTime? end, DateTime today, bool close, Func<AcademicPeriod, Task> record, CancellationToken ct);
 }

@@ -12,6 +12,8 @@ public sealed class PasswordRecoveryToken
 
     public string TokenHash { get; private set; } = string.Empty;
 
+    public string? NormalizedEmail { get; private set; }
+
     public DateTime ExpiresAt { get; private set; }
 
     public DateTime? UsedAt { get; private set; }
@@ -19,7 +21,8 @@ public sealed class PasswordRecoveryToken
     public static PasswordRecoveryToken Create(
         Guid userId,
         string tokenHash,
-        DateTime issuedAt)
+        DateTime issuedAt,
+        string? email = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(tokenHash);
         return new PasswordRecoveryToken
@@ -27,6 +30,7 @@ public sealed class PasswordRecoveryToken
             Id = Guid.NewGuid(),
             UserId = userId,
             TokenHash = tokenHash,
+            NormalizedEmail = email?.Trim().ToUpperInvariant(),
             ExpiresAt = issuedAt.AddMinutes(30),
         };
     }

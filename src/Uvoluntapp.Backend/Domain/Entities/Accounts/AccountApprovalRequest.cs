@@ -50,7 +50,7 @@ public sealed class AccountApprovalRequest : Entity
     {
         return Status == AccountApprovalStatus.REJECTED
             && ReviewedAt is not null
-            && instant >= ReviewedAt.Value.AddDays(1);
+            && instant >= ReviewedAt.Value.AddHours(12);
     }
 
     public AccountApprovalRequest CreateResubmission()

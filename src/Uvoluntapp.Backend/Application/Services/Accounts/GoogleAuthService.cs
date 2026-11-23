@@ -40,8 +40,8 @@ public sealed class GoogleAuthService(
             claims.Email.Trim(),
             claims.EmailVerified,
             claims.HostedDomain,
-            claims.GivenName?.Trim(),
-            claims.FamilyName?.Trim());
+            request.FirstName?.Trim() ?? claims.GivenName?.Trim(),
+            request.LastName?.Trim() ?? claims.FamilyName?.Trim());
         var bySubject = await accounts.FindBySubjectAsync(identity.Subject, cancellationToken);
         var account = bySubject ?? await accounts.FindByEmailAsync(identity.Email, cancellationToken);
         var decision = GoogleAccountLinkingPolicy.Decide(
@@ -56,10 +56,16 @@ public sealed class GoogleAuthService(
 
         if (account is null)
         {
+            if (decision.InstitutionalEmailVerified && (string.IsNullOrWhiteSpace(request.Phone) || string.IsNullOrWhiteSpace(identity.GivenName) || string.IsNullOrWhiteSpace(identity.FamilyName)))
+            {
+                return new GoogleAuthResponse("PENDING_VERIFICATION", true, null, identity.Email, false, identity.GivenName, identity.FamilyName, RequiresProfileData: true);
+            }
+
             account = await accounts.CreateAsync(
                 identity,
                 decision.Status,
                 decision.InstitutionalEmailVerified,
+                request.Phone?.Trim(),
                 cancellationToken);
         }
 

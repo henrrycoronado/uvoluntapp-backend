@@ -130,7 +130,7 @@ public sealed class ProgramService(
     public async Task<IReadOnlyList<ProgramTeamMember>> TeamAsync(Guid actorId, Guid programId, CancellationToken cancellationToken = default)
     {
         var actor = await access.ResolveAsync(actorId, cancellationToken);
-        if (!PlanningAccess.CanSeeAllPrograms(actor))
+        if (!access.CanManageProgram(actor, programId))
         {
             throw new ForbiddenException("El equipo de un programa lo consultan ADMIN y líderes.");
         }

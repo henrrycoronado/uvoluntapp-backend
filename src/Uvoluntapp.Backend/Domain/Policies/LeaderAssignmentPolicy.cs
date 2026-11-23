@@ -26,6 +26,7 @@ public static class LeaderAssignmentPolicy
         Guid? activityProgramId,
         DateTime atUtc) =>
         role == AssignedRole.OPERATIONAL_LEADER
+        && scope == RoleScope.ACTIVITY
         && ManagedProgram(scope, scopeId, activityProgramId) is { } programId
         && IsLeadingProgram(actorAssignments, programId, atUtc);
 

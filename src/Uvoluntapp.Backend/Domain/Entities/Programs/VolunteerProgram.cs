@@ -18,6 +18,8 @@ public sealed class VolunteerProgram : Entity
 
     public const int ReferenceScheduleMaxLength = 500;
 
+    public List<MediaAsset> Images { get; } = [];
+
     public string Name { get; set; } = string.Empty;
 
     public string? Description { get; set; }
