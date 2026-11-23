@@ -6,6 +6,7 @@ Corte: 23 de noviembre de 2026 · Rama de trabajo `fix/m2-validacion` · Jira: p
 
 - La fuente de verdad son los tickets de Jira y `AGENTS.md`. Este archivo resume el estado; no lo sustituye.
 - No hacer `git push`, crear PRs ni cambiar estados o fechas en Jira sin confirmación explícita.
+- Ramas: la cabecera es `main` (no existe `master`). Por ahora no se hace merge ni PR hacia `main`: todo el avance funcional se integra en `develop`.
 - Commits `tipo(alcance): descripción`, con la descripción de 80 caracteres como máximo (lo exige el hook de `.husky`). Sin firmas de herramientas de IA.
 - Un cambio en endpoints o DTOs se refleja en `contracts/openapi.yaml`. La web regenera su cliente con `npm run gen:api`.
 - Los topes de longitud de datos de cuenta y perfil viven en `Domain/Utils/Constants/FieldLimits.cs`. La web los repite en `LIMITS` (`src/features/auth/validation.ts`); si cambian aquí, cambian allí.
