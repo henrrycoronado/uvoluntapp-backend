@@ -81,7 +81,16 @@ public sealed class EnrollmentService(PlanningAccess access, IActivityStore acti
             access.RequireActivityManager(actor, await FindAsync(activityId.Value, ct));
         }
 
-        return (await store.ListAsync(activityId.HasValue ? null : userId, activityId, ct)).Select(EnrollmentResponse.From).ToList();
+        var enrollments = await store.ListAsync(activityId.HasValue ? null : userId, activityId, ct);
+        var rows = enrollments.Select(EnrollmentResponse.From).ToList();
+        if (!activityId.HasValue || rows.Count == 0)
+        {
+            return rows;
+        }
+
+        // La lista de una actividad es para su responsable: añade nombre y correo para identificar a cada inscrito.
+        var people = await store.ParticipantsAsync(rows.Select(r => r.UserId).Distinct().ToList(), ct);
+        return rows.Select(r => people.TryGetValue(r.UserId, out var p) ? r.WithParticipant(p.Name, p.Email) : r).ToList();
     }
 
     private async Task<Activity> FindAsync(Guid id, CancellationToken ct) =>

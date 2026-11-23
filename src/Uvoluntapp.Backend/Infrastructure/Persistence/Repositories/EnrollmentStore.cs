@@ -23,6 +23,15 @@ public sealed class EnrollmentStore(AppDbContext db) : IEnrollmentStore
     public Task<List<Enrollment>> ListAsync(Guid? userId, Guid? activityId, CancellationToken ct) =>
         db.Enrollments.Where(e => (!userId.HasValue || e.UserId == userId) && (!activityId.HasValue || e.ActivityId == activityId)).OrderByDescending(e => e.CreatedAt).ToListAsync(ct);
 
+    public async Task<Dictionary<Guid, (string Name, string? Email)>> ParticipantsAsync(IReadOnlyCollection<Guid> userIds, CancellationToken ct)
+    {
+        var rows = await (from p in db.Profiles
+                          join u in db.Users on p.UserId equals u.Id
+                          where userIds.Contains(p.UserId)
+                          select new { p.UserId, p.FirstName, p.LastName, u.Email }).ToListAsync(ct);
+        return rows.ToDictionary(r => r.UserId, r => (Name: $"{r.FirstName} {r.LastName}".Trim(), Email: (string?)r.Email));
+    }
+
     public Task<int> OccupancyAsync(Guid activityId, Guid? groupId, CancellationToken ct) =>
         db.Enrollments.CountAsync(e => e.ActivityId == activityId && e.GroupId == groupId && e.CancelledAt == null, ct);
 

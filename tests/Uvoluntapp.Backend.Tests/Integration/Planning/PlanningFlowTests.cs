@@ -245,6 +245,11 @@ public sealed class PlanningFlowTests(AuthFixture fixture) : IClassFixture<AuthF
         var collision = await Json(await person.Http.PostAsJsonAsync(signup, new { groupId = ids["C"] }), HttpStatusCode.Conflict);
         Assert.Equal("TIME_OVERLAP", collision.GetProperty("code").GetString());
         (await person.Http.PostAsJsonAsync(signup, new { groupId = ids["B"] })).EnsureSuccessStatusCode();
+        var listing = await Json(await admin.Http.GetAsync(signup), HttpStatusCode.OK);
+        Assert.Equal(2, listing.GetArrayLength());
+        Assert.All(listing.EnumerateArray(), e => Assert.False(string.IsNullOrWhiteSpace(e.GetProperty("participantName").GetString())));
+        var own = await Json(await person.Http.GetAsync("/api/v1/me/enrollments"), HttpStatusCode.OK);
+        Assert.All(own.EnumerateArray(), e => Assert.Equal(System.Text.Json.JsonValueKind.Null, e.GetProperty("participantName").ValueKind));
         var second = await Json(await admin.Http.PostAsJsonAsync("/api/v1/activities", ActivityBody(null, period, requiresRegistration: true)), HttpStatusCode.Created);
         var otherPath = $"/api/v1/activities/{second.GetProperty("id").GetGuid()}";
         (await admin.Http.PostAsync(otherPath + "/publish", null)).EnsureSuccessStatusCode();

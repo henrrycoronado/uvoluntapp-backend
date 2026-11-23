@@ -9,6 +9,8 @@ public interface IEnrollmentStore
 
     Task<List<Enrollment>> ListAsync(Guid? userId, Guid? activityId, CancellationToken ct);
 
+    Task<Dictionary<Guid, (string Name, string? Email)>> ParticipantsAsync(IReadOnlyCollection<Guid> userIds, CancellationToken ct);
+
     Task<int> OccupancyAsync(Guid activityId, Guid? groupId, CancellationToken ct);
 
     Task<bool> OverlapsAsync(Guid userId, DateTime start, DateTime end, CancellationToken ct);
