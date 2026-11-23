@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
+using Uvoluntapp.Backend.Domain.Utils.Constants;
 
 namespace Uvoluntapp.Backend.Application.DTOs.Accounts;
 
@@ -8,6 +9,7 @@ public sealed record SetPasswordRequest
 {
     [Required]
     [EmailAddress]
+    [MaxLength(FieldLimits.Email)]
     [JsonPropertyName("email")]
     public string Email { get; init; } = string.Empty;
 
@@ -18,6 +20,7 @@ public sealed record SetPasswordRequest
 
     [Required]
     [MinLength(8)]
+    [MaxLength(FieldLimits.Password)]
     [JsonPropertyName("password")]
     public string Password { get; init; } = string.Empty;
 }

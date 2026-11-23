@@ -374,6 +374,20 @@ public sealed class AuthFlowTests(AuthFixture fixture) : IClassFixture<AuthFixtu
     }
 
     [Fact]
+    public async Task ProfileUpdateRejectsFieldsOverTheLimitWithProblemDetails()
+    {
+        using var client = fixture.Client();
+        var request = NewRegistration("ucb.edu.bo");
+        await RegisterAsync(client, request);
+        var verified = await (await VerifyAsync(client, request.Email)).Content.ReadFromJsonAsync<VerifyOtpResponse>();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", verified!.Tokens!.AccessToken);
+
+        await AssertProblemAsync(await client.PatchAsJsonAsync("/api/v1/profile", new { firstName = new string('a', 101) }), HttpStatusCode.BadRequest);
+        await AssertProblemAsync(await client.PatchAsJsonAsync("/api/v1/profile", new { phone = new string('7', 31) }), HttpStatusCode.BadRequest);
+        (await client.PatchAsJsonAsync("/api/v1/profile", new { firstName = new string('a', 100) })).EnsureSuccessStatusCode();
+    }
+
+    [Fact]
     public async Task ProfileAndAccessEmailChangesAreAuditedAndTheEmailChangeRevokesSessions()
     {
         using var client = fixture.Client();

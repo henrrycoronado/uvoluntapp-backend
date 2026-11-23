@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Uvoluntapp.Backend.Domain.Utils.Constants;
 
 namespace Uvoluntapp.Backend.Application.DTOs.Accounts;
 
@@ -19,5 +20,6 @@ public sealed record ResetPasswordRequest
 
     [Required]
     [MinLength(8)]
+    [MaxLength(FieldLimits.Password)]
     public string NewPassword { get; init; } = string.Empty;
 }
